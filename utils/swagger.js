@@ -1,4 +1,4 @@
-export const swaggerOptions = {
+const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
     info: {
@@ -10,3 +10,5 @@ export const swaggerOptions = {
   apis: ["./routes/*.js"],
   schemes: ["http", "https"],
 };
+
+module.exports = swaggerOptions;
