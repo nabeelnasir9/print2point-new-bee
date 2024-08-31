@@ -32,6 +32,12 @@ customerSchema.pre("save", async function (next) {
     next(err);
   }
 });
+customerSchema.virtual("jobs", {
+  ref: "PrintJob", // The model to use
+  localField: "_id", // Find jobs where `localField`
+  foreignField: "customer_id", // is equal to `foreignField`
+});
+
 customerSchema.set("toJSON", {
   transform: (_doc, ret) => {
     delete ret.password;
@@ -39,7 +45,18 @@ customerSchema.set("toJSON", {
     delete ret.otp_expiry;
     return ret;
   },
+  virtuals: true,
 });
+customerSchema.set("toObject", {
+  transform: (_doc, ret) => {
+    delete ret.password;
+    delete ret.otp;
+    delete ret.otp_expiry;
+    return ret;
+  },
+  virtuals: true,
+});
+
 // Middleware to update the updated_at field
 customerSchema.pre("save", function (next) {
   this.updated_at = Date.now();

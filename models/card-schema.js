@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const cardSchema = new mongoose.Schema({
   user_id: { type: mongoose.Schema.Types.ObjectId, required: true },
-  ref_type: { type: String, enum: ["User", "PrintAgent"], required: true },
+  ref_type: { type: String, enum: ["Customer", "PrintAgent"], required: true },
   bank_name: { type: String, required: true },
   cvv: { type: String, required: true, minlength: 3 },
   card_number: {

@@ -16,7 +16,7 @@ router.post("/create-card", verifyToken, async (req, res) => {
     const newCard = new Card({
       ...card,
       user_id: customer._id,
-      ref_type: "User",
+      ref_type: "Customer",
     });
 
     await newCard.save();

@@ -55,6 +55,13 @@ printAgentSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
+
+printAgentSchema.virtual("jobs", {
+  ref: "PrintJob", // The model to use
+  localField: "_id", // Find jobs where `localField`
+  foreignField: "print_agent_id", // is equal to `foreignField`
+});
+
 printAgentSchema.set("toJSON", {
   transform: (_doc, ret) => {
     delete ret.password;
@@ -62,6 +69,17 @@ printAgentSchema.set("toJSON", {
     delete ret.otp_expiry;
     return ret;
   },
+  virtuals: true,
 });
+printAgentSchema.set("toObject", {
+  transform: (_doc, ret) => {
+    delete ret.password;
+    delete ret.otp;
+    delete ret.otp_expiry;
+    return ret;
+  },
+  virtuals: true,
+});
+
 const PrintAgent = mongoose.model("PrintAgent", printAgentSchema);
 module.exports = PrintAgent;

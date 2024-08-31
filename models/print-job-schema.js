@@ -1,11 +1,8 @@
 const mongoose = require("mongoose");
 
 const printJobSchema = new mongoose.Schema({
-  user_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
+  customer_id: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
+  print_agent_id: { type: mongoose.Schema.Types.ObjectId, ref: "PrintAgent" },
   file_path: { type: String, required: true },
   status: {
     type: String,
@@ -15,7 +12,6 @@ const printJobSchema = new mongoose.Schema({
   print_job_title: { type: String, required: true },
   print_job_description: { type: String, required: true },
   pages: { type: Number, required: true },
-  print_agent_id: { type: mongoose.Schema.Types.ObjectId, ref: "PrintAgent" },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
   payment_status: {
