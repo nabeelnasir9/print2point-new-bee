@@ -2,10 +2,10 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const customerSchema = new mongoose.Schema({
+  full_name: { type: String, required: true },
   email: { type: String, required: true, unique: true, match: /.+\@.+\..+/ },
   password: { type: String, required: true, minlength: 6 },
   cards: [{ type: mongoose.Schema.Types.ObjectId, ref: "Card" }],
-  password: { type: String, required: true, minlength: 6 },
   location: {
     address: { type: String },
     city: { type: String },
@@ -16,7 +16,7 @@ const customerSchema = new mongoose.Schema({
   otp: { type: String },
   otp_expiry: { type: Date },
   verified_email: { type: Boolean, default: false },
-  phone_number: { type: String },
+  phone_number: { type: String, match: /^\+[0-9]{2,3}\d{9,10}$/ },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
 });
@@ -32,7 +32,14 @@ customerSchema.pre("save", async function (next) {
     next(err);
   }
 });
-
+customerSchema.set("toJSON", {
+  transform: (_doc, ret) => {
+    delete ret.password;
+    delete ret.otp;
+    delete ret.otp_expiry;
+    return ret;
+  },
+});
 // Middleware to update the updated_at field
 customerSchema.pre("save", function (next) {
   this.updated_at = Date.now();

@@ -8,13 +8,20 @@ const printAgentSchema = new mongoose.Schema({
   business_name: { type: String, required: true },
   business_type: { type: String, required: true },
   personal_info: { type: String },
-  personal_phone_number: { type: String },
+  personal_phone_number: {
+    type: String,
+    match: /^\+[0-9]{2,3}\d{9,10}$/,
+  },
   location: {
     address: { type: String },
     city: { type: String },
     state: { type: String },
     zip_code: { type: String },
     country: { type: String },
+    coordinates: {
+      longtitude: { type: Number },
+      latitude: { type: Number },
+    },
   },
   cards: [{ type: mongoose.Schema.Types.ObjectId, ref: "Card" }],
   created_at: { type: Date, default: Date.now },
@@ -48,6 +55,13 @@ printAgentSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
 });
-
+printAgentSchema.set("toJSON", {
+  transform: (_doc, ret) => {
+    delete ret.password;
+    delete ret.otp;
+    delete ret.otp_expiry;
+    return ret;
+  },
+});
 const PrintAgent = mongoose.model("PrintAgent", printAgentSchema);
 module.exports = PrintAgent;

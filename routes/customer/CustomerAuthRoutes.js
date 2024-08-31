@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.post("/signup", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, full_name } = req.body;
 
     let customer = await Customer.findOne({ email });
     if (customer) {
@@ -27,6 +27,7 @@ router.post("/signup", async (req, res) => {
     customer = new Customer({
       email,
       password,
+      full_name,
       otp,
       otp_expiry,
     });
@@ -44,7 +45,7 @@ router.post("/signup", async (req, res) => {
       },
     });
 
-    transporter.sendMail(mailOptions(email, otp, "customer"), (error, info) => {
+    transporter.sendMail(mailOptions(email, otp, "customer"), (error) => {
       if (error) {
         return res.status(500).json({ message: "Error sending email" });
       }
@@ -52,7 +53,7 @@ router.post("/signup", async (req, res) => {
     });
   } catch (err) {
     console.error("Server error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -96,7 +97,7 @@ router.post("/verify-otp", async (req, res) => {
     );
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -130,12 +131,14 @@ router.post("/login", async (req, res) => {
       { expiresIn: "10 days" },
       (err, token) => {
         if (err) throw err;
-        res.status(200).json({ message: "Logged in successfully", token });
+        res
+          .status(200)
+          .json({ message: "Logged in successfully", token, customer });
       },
     );
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 

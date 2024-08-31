@@ -32,7 +32,7 @@ router.post("/additional-info", verifyToken, async (req, res) => {
     res.status(200).json({ message: "Additional info updated successfully" });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -55,10 +55,12 @@ router.post("/create-card", verifyToken, async (req, res) => {
     printAgent.cards.push(newCard._id);
     await printAgent.save();
 
-    res.status(201).json({ message: "Card created successfully" });
+    res
+      .status(201)
+      .json({ message: "Card created successfully", card: newCard._id });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -77,7 +79,7 @@ router.get("/get-cards", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -98,7 +100,7 @@ router.get("/get-card/:cardId", verifyToken, async (req, res) => {
     res.status(200).json({ message: "Card retrieved successfully", card });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -127,7 +129,7 @@ router.delete("/delete-card/:cardId", verifyToken, async (req, res) => {
     res.status(200).json({ message: "Card deleted successfully" });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 //  PUT request to update card
@@ -140,7 +142,8 @@ router.put(
   async (req, res) => {
     try {
       const { cardId } = req.params;
-      const { bank_name, card_number, expiry_date, phone_number } = req.body;
+      const { bank_name, card_number, expiry_date, phone_number, cvv } =
+        req.body;
 
       const printAgent = await PrintAgent.findById(req.user.id);
       if (!printAgent) {
@@ -160,13 +163,14 @@ router.put(
       cardToUpdate.card_number = card_number ?? cardToUpdate.card_number;
       cardToUpdate.expiry_date = expiry_date ?? cardToUpdate.expiry_date;
       cardToUpdate.phone_number = phone_number ?? cardToUpdate.phone_number;
+      cardToUpdate.cvv = cvv ?? cardToUpdate.cvv;
 
       await cardToUpdate.save();
 
       res.status(200).json({ message: "Card updated successfully" });
     } catch (err) {
       console.error(err.message);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Server error", err });
     }
   },
 );

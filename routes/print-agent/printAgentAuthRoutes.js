@@ -62,7 +62,7 @@ router.post("/signup", async (req, res) => {
     });
   } catch (err) {
     console.error("Server error:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -106,7 +106,7 @@ router.post("/verify-otp", async (req, res) => {
     );
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -140,12 +140,14 @@ router.post("/login", async (req, res) => {
       { expiresIn: "10 days" },
       (err, token) => {
         if (err) throw err;
-        res.status(200).json({ message: "Logged in successfully", token });
+        res
+          .status(200)
+          .json({ message: "Logged in successfully", token, printAgent });
       },
     );
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 

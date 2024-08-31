@@ -23,10 +23,12 @@ router.post("/create-card", verifyToken, async (req, res) => {
     customer.cards.push(newCard._id);
     await customer.save();
 
-    res.status(201).json({ message: "Card created successfully" });
+    res
+      .status(201)
+      .json({ message: "Card created successfully", card: newCard._id });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -45,7 +47,7 @@ router.get("/get-cards", verifyToken, async (req, res) => {
       .json({ message: "Cards retrieved successfully", cards: customer.cards });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -94,7 +96,7 @@ router.delete("/delete-card/:cardId", verifyToken, async (req, res) => {
     res.status(200).json({ message: "Card deleted successfully" });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -138,7 +140,7 @@ router.put("/update-card/:cardId", verifyToken, async (req, res) => {
     res.status(200).json({ message: "Card updated successfully" });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", err });
   }
 });
 
@@ -149,7 +151,8 @@ router.put(
   async (req, res) => {
     try {
       const { cardId } = req.params;
-      const { bank_name, card_number, expiry_date, phone_number } = req.body;
+      const { bank_name, card_number, expiry_date, phone_number, cvv } =
+        req.body;
 
       const customer = await Customer.findById(req.user.id);
       if (!customer) {
@@ -164,18 +167,18 @@ router.put(
       if (!customer.cards.includes(cardId)) {
         return res.status(403).json({ message: "Unauthorized access" });
       }
-
       cardToUpdate.bank_name = bank_name ?? cardToUpdate.bank_name;
       cardToUpdate.card_number = card_number ?? cardToUpdate.card_number;
       cardToUpdate.expiry_date = expiry_date ?? cardToUpdate.expiry_date;
       cardToUpdate.phone_number = phone_number ?? cardToUpdate.phone_number;
+      cardToUpdate.cvv = cvv ?? cardToUpdate.cvv;
 
       await cardToUpdate.save();
 
       res.status(200).json({ message: "Card updated successfully" });
     } catch (err) {
       console.error(err.message);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({ message: "Server error", err });
     }
   },
 );
