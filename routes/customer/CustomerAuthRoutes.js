@@ -1,4 +1,4 @@
-const Customer = require("../../models/customer.js");
+const Customer = require("../../models/customer-schema.js");
 const mailOptions = require("../../utils/mailOptions.js");
 const express = require("express");
 const bcrypt = require("bcryptjs");
@@ -13,7 +13,7 @@ router.post("/signup", async (req, res) => {
 
     let customer = await Customer.findOne({ email });
     if (customer) {
-      return res.status(400).send("User already exists");
+      return res.status(400).json({ message: "User already exists" });
     }
 
     const otp = otpGenerator.generate(6, {
@@ -24,16 +24,12 @@ router.post("/signup", async (req, res) => {
     });
     const otp_expiry = new Date(Date.now() + 300000);
 
-    console.log("Generated OTP:", otp, "Expiry Time:", otp_expiry);
-
     customer = new Customer({
       email,
       password,
-      otp, // Correctly set here
-      otp_expiry, // Correctly set here
+      otp,
+      otp_expiry,
     });
-
-    console.log("Customer object before saving:", customer);
 
     await customer.save();
 
@@ -50,14 +46,12 @@ router.post("/signup", async (req, res) => {
 
     transporter.sendMail(mailOptions(email, otp, "customer"), (error, info) => {
       if (error) {
-        console.log("Error sending email:", error);
         return res.status(500).json({ message: "Error sending email" });
       }
-      console.log("Email sent successfully:", info.response);
       res.status(200).json({ message: "OTP sent to your email" });
     });
   } catch (err) {
-    console.error("Server error:", err); // Log the whole error object
+    console.error("Server error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -93,7 +87,8 @@ router.post("/verify-otp", async (req, res) => {
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: "5h" },
+      //INFO: revert it back after dev to 5h
+      { expiresIn: "10 days" },
       (err, token) => {
         if (err) throw err;
         res.json({ message: "OTP verified successfully", token });
@@ -131,7 +126,8 @@ router.post("/login", async (req, res) => {
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: "5h" },
+      //INFO: revert it back after dev to 5h
+      { expiresIn: "10 days" },
       (err, token) => {
         if (err) throw err;
         res.status(200).json({ message: "Logged in successfully", token });

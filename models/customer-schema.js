@@ -2,9 +2,10 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 const customerSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  card: { type: mongoose.Schema.Types.ObjectId, ref: "Card" },
-  password: { type: String, required: true },
+  email: { type: String, required: true, unique: true, match: /.+\@.+\..+/ },
+  password: { type: String, required: true, minlength: 6 },
+  cards: [{ type: mongoose.Schema.Types.ObjectId, ref: "Card" }],
+  password: { type: String, required: true, minlength: 6 },
   location: {
     address: { type: String },
     city: { type: String },

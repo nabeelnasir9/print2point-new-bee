@@ -1,11 +1,16 @@
 const mongoose = require("mongoose");
 
 const cardSchema = new mongoose.Schema({
-  user_id: { type: mongoose.Schema.Types.ObjectId, required: true }, // Reference to User or PrintAgent
-  ref_type: { type: String, enum: ["User", "PrintAgent"], required: true }, // Distinguish between references
-  card_number: { type: String, required: true },
+  user_id: { type: mongoose.Schema.Types.ObjectId, required: true },
+  ref_type: { type: String, enum: ["User", "PrintAgent"], required: true },
+  bank_name: { type: String, required: true },
+  card_number: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   expiry_date: { type: String, required: true },
-  card_holder_name: { type: String, required: true },
+  phone_number: { type: String, required: true },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
 });

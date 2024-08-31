@@ -3,19 +3,20 @@ const bcrypt = require("bcryptjs");
 
 const printAgentSchema = new mongoose.Schema({
   full_name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  email: { type: String, required: true, unique: true, match: /.+\@.+\..+/ },
+  password: { type: String, required: true, minlength: 6 },
   business_name: { type: String, required: true },
   business_type: { type: String, required: true },
-  // phone_number: { type: String, required: true },
+  personal_info: { type: String },
+  personal_phone_number: { type: String },
   location: {
     address: { type: String },
     city: { type: String },
     state: { type: String },
     zip_code: { type: String },
-    country: { type: String }, // Optional
+    country: { type: String },
   },
-  card: { type: mongoose.Schema.Types.ObjectId, ref: "Card" },
+  cards: [{ type: mongoose.Schema.Types.ObjectId, ref: "Card" }],
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
   verified_email: { type: Boolean, default: false },

@@ -1,4 +1,4 @@
-const PrintAgent = require("../../models/print-agent.js");
+const PrintAgent = require("../../models/print-agent-schema.js");
 const mailOptions = require("../../utils/mailOptions.js");
 const express = require("express");
 const bcrypt = require("bcryptjs");
@@ -97,10 +97,11 @@ router.post("/verify-otp", async (req, res) => {
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: "5h" },
+      //INFO: revert it back after dev to 5h
+      { expiresIn: "10 days" },
       (err, token) => {
         if (err) throw err;
-        res.json({ token });
+        res.json({ message: "email verified successfully", token });
       },
     );
   } catch (err) {
@@ -135,7 +136,8 @@ router.post("/login", async (req, res) => {
     jwt.sign(
       payload,
       process.env.JWT_SECRET,
-      { expiresIn: "5h" },
+      //INFO: revert it back after dev to 5h
+      { expiresIn: "10 days" },
       (err, token) => {
         if (err) throw err;
         res.status(200).json({ message: "Logged in successfully", token });

@@ -6,7 +6,7 @@ const printJobSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  file_path: { type: String, required: true }, // Path to stored file
+  file_path: { type: String, required: true },
   status: {
     type: String,
     enum: ["submitted", "processing", "completed"],
