@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
 const locationSchema = new mongoose.Schema({
-  // address: { type: String },
   city: { type: String },
   state: { type: String },
   zip_code: { type: String },
@@ -14,6 +13,15 @@ locationSchema.pre("save", function (next) {
   this.updated_at = Date.now();
   next();
 });
+
+locationSchema.virtual("printAgents", {
+  ref: "PrintAgent",
+  localField: "_id",
+  foreignField: "locationRef",
+});
+
+locationSchema.set("toJSON", { virtuals: true });
+locationSchema.set("toObject", { virtuals: true });
 
 const Location = mongoose.model("Location", locationSchema);
 module.exports = Location;

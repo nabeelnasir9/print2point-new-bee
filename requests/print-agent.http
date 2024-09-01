@@ -39,3 +39,20 @@ Authorization: Bearer {{printlogin.response.body.$.token}}
   }
 }
 
+###
+POST {{baseUrl}}/api/print-agent/add-location
+Content-Type: application/json
+Authorization: Bearer {{printlogin.response.body.$.token}}
+
+{
+  "location": {
+    "city": "City",
+    "state": "State",
+    "zip_code": "12345",
+    "country": "Country",
+    "coordinates": {
+      "latitude": 12.34,
+      "longitude": 12.34
+    }
+  }
+}

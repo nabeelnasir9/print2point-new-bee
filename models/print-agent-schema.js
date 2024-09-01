@@ -19,25 +19,22 @@ const printAgentSchema = new mongoose.Schema({
     zip_code: { type: String },
     country: { type: String },
     coordinates: {
-      longtitude: { type: Number },
+      longitude: { type: Number },
       latitude: { type: Number },
     },
   },
   cards: [{ type: mongoose.Schema.Types.ObjectId, ref: "Card" }],
+  locationRef: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Location",
+  },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
   verified_email: { type: Boolean, default: false },
   otp: { type: String },
   otp_expiry: { type: Date },
   is_available: { type: Boolean, default: false },
-  // INFO: Could be removed and only use the toggle online offline with (is_available) for this.
-  // hours_of_operation: [
-  //   {
-  //     day: { type: String, required: true },
-  //     open: { type: String, required: true },
-  //     close: { type: String, required: true },
-  //   },
-  // ],
+  is_deactivated: { type: Boolean, default: true },
 });
 
 printAgentSchema.pre("save", async function (next) {
@@ -52,14 +49,14 @@ printAgentSchema.pre("save", async function (next) {
 });
 
 printAgentSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
+  this.updated_at = Date.now();
   next();
 });
 
 printAgentSchema.virtual("jobs", {
-  ref: "PrintJob", // The model to use
-  localField: "_id", // Find jobs where `localField`
-  foreignField: "print_agent_id", // is equal to `foreignField`
+  ref: "PrintJob",
+  localField: "_id",
+  foreignField: "print_agent_id",
 });
 
 printAgentSchema.set("toJSON", {
@@ -71,6 +68,7 @@ printAgentSchema.set("toJSON", {
   },
   virtuals: true,
 });
+
 printAgentSchema.set("toObject", {
   transform: (_doc, ret) => {
     delete ret.password;

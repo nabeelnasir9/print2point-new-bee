@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const Admin = require("../models/admin-schema");
 const mongoose = require("mongoose");
+const Location = require("../models/locations-schema.js");
 const Customer = require("../models/customer-schema.js");
 const PrintAgent = require("../models/print-agent-schema.js");
 const jwt = require("jsonwebtoken");
@@ -176,6 +177,125 @@ router.delete("/print-agents/:id", verifyToken, async (req, res) => {
     res.status(200).json({ message: "Print agent deleted successfully" });
   } catch (err) {
     console.error("Error deleting print agent:", err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+// add location to print agent
+
+router.post("/locations", verifyToken, async (req, res) => {
+  try {
+    const { city, state, zip_code, country } = req.body;
+    const lowerCaseCity = city.toLowerCase();
+    const lowerCaseState = state.toLowerCase();
+    const lowerCaseZipCode = zip_code.toLowerCase();
+    const lowerCaseCountry = country.toLowerCase();
+
+    const location = await Location.create({
+      city: lowerCaseCity,
+      state: lowerCaseState,
+      zip_code: lowerCaseZipCode,
+      country: lowerCaseCountry,
+    });
+
+    res
+      .status(201)
+      .json({ message: "Location created successfully", location });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+// Get all locations with their associated print agents
+router.get("/locations", verifyToken, async (_req, res) => {
+  try {
+    const locations = await Location.find();
+    res
+      .status(200)
+      .json({ message: "Locations fetched successfully", locations });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+router.get("/locations/:id", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid location ID" });
+    }
+    const location = await Location.findById(id).populate("printAgents");
+    if (!location) {
+      return res.status(404).json({ message: "Location not found" });
+    }
+    res.status(200).json({
+      message: "Location fetched successfully",
+      location,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+router.delete("/locations/:id", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid location ID" });
+    }
+
+    const location = await Location.findById(id);
+    if (!location) {
+      return res.status(404).json({ message: "Location not found" });
+    }
+
+    await PrintAgent.updateMany({ locationRef: id }, { is_available: false });
+
+    await location.deleteOne();
+
+    res
+      .status(200)
+      .json({
+        message: "Location deleted and associated agents disabled successfully",
+      });
+  } catch (err) {
+    console.error("Error deleting location:", err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+// If location is updated, deactivate agents associated with that location
+router.put("/locations/:id", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid location ID" });
+    }
+    const { city, state, zip_code, country } = req.body;
+
+    const location = await Location.findByIdAndUpdate(
+      id,
+      { city, state, zip_code, country },
+      { new: true },
+    );
+
+    if (!location) {
+      return res.status(404).json({ message: "Location not found" });
+    }
+    await PrintAgent.updateMany(
+      { locationRef: id },
+      { $set: { is_deactivated: true } },
+    );
+    res.status(200).json({
+      message:
+        "Location updated successfully, and associated agents deactivated.",
+    });
+  } catch (err) {
+    console.error(
+      "Error updating location and deactivating agents:",
+      err.message,
+    );
     res.status(500).json({ message: "Server error", err });
   }
 });

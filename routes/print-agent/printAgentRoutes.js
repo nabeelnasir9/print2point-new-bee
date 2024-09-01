@@ -1,6 +1,7 @@
 const express = require("express");
 const verifyToken = require("../../middleware/verifyToken.js");
 const PrintAgent = require("../../models/print-agent-schema.js");
+const Location = require("../../models/locations-schema.js");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
 const router = express.Router();
@@ -174,5 +175,43 @@ router.put(
     }
   },
 );
+
+// Add location to print agent and only allow if it exists in the locations collection by getting all the locations in location schema and checking if it matches with any state or zip code
+router.post("/add-location", verifyToken, async (req, res) => {
+  try {
+    const { location } = req.body;
+    const printAgent = await PrintAgent.findById(req.user.id);
+    if (!printAgent) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    const lowerCaseState = location.state.toLowerCase();
+    const lowerCaseZipCode = location.zip_code.toLowerCase();
+
+    const existingLocation = await Location.findOne({
+      zip_code: lowerCaseZipCode,
+      state: lowerCaseState,
+    });
+
+    if (!existingLocation) {
+      return res.status(400).json({ message: "Location not allowed" });
+    }
+
+    printAgent.location = {
+      ...location,
+      state: lowerCaseState,
+      zip_code: lowerCaseZipCode,
+    };
+    printAgent.locationRef = existingLocation._id;
+    await printAgent.save();
+
+    res.status(200).json({
+      message: "Location added successfully",
+      location: printAgent.location,
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
 
 module.exports = router;
