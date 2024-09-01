@@ -2,6 +2,9 @@ const express = require("express");
 const verifyToken = require("../../middleware/verifyToken.js");
 const PrintAgent = require("../../models/print-agent-schema.js");
 const Location = require("../../models/locations-schema.js");
+const otpGenerator = require("otp-generator");
+const mailOptions = require("../../utils/mailOTP.js");
+const nodemailer = require("nodemailer");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
 const router = express.Router();
@@ -211,6 +214,77 @@ router.post("/add-location", verifyToken, async (req, res) => {
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ message: "Server error", error });
+  }
+});
+
+// should send a mail with an otp which when entered switches the is_available to true and vice versa
+router.get("/availability", verifyToken, async (req, res) => {
+  try {
+    const printAgent = await PrintAgent.findById(req.user.id);
+    if (!printAgent) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const email = printAgent.email;
+
+    const otp = otpGenerator.generate(6, {
+      digits: true,
+      alphabets: true,
+      upperCase: true,
+      specialChars: false,
+    });
+
+    printAgent.availability_otp = otp;
+    printAgent.availability_otp_expiry = Date.now() + 10 * 60 * 1000;
+    await printAgent.save();
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "infosynthseer@gmail.com",
+        pass: "kegj ytci koqp dveq",
+      },
+    });
+
+    transporter.sendMail(mailOptions(email, otp), (error) => {
+      if (error) {
+        return res.status(500).json({ message: "Error sending email" });
+      }
+      res.status(200).json({ message: "OTP sent to your email" });
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+router.get("/verify-avail-otp/:otp", verifyToken, async (req, res) => {
+  try {
+    const { otp } = req.params;
+    const printAgent = await PrintAgent.findById(req.user.id);
+
+    if (!printAgent) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (
+      printAgent.availability_otp !== otp ||
+      printAgent.availability_otp_expiry < Date.now()
+    ) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    printAgent.is_available = !printAgent.is_available;
+    printAgent.availability_otp = undefined;
+    printAgent.availability_otp_expiry = undefined;
+    await printAgent.save();
+
+    res.status(200).json({ message: "Availability updated successfully" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
   }
 });
 

@@ -33,6 +33,8 @@ const printAgentSchema = new mongoose.Schema({
   verified_email: { type: Boolean, default: false },
   otp: { type: String },
   otp_expiry: { type: Date },
+  availability_otp: { type: String },
+  availability_otp_expiry: { type: Date },
   is_available: { type: Boolean, default: false },
   is_deactivated: { type: Boolean, default: true },
 });
