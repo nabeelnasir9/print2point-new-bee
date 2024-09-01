@@ -17,7 +17,6 @@ router.post("/additional-info", verifyToken, async (req, res) => {
     if (!printAgent) {
       return res.status(400).json({ message: "User not found" });
     }
-
     printAgent.personal_info = personal_info;
     printAgent.location = location;
     printAgent.personal_phone_number = personal_phone_number;

@@ -4,6 +4,7 @@ const printJobSchema = new mongoose.Schema({
   customer_id: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
   print_agent_id: { type: mongoose.Schema.Types.ObjectId, ref: "PrintAgent" },
   file_path: { type: String, required: true },
+  //NOTE: status could be removed.
   status: {
     type: String,
     enum: ["submitted", "processing", "completed"],
