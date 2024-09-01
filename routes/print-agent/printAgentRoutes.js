@@ -58,7 +58,7 @@ router.post("/create-card", verifyToken, async (req, res) => {
 
     res
       .status(201)
-      .json({ message: "Card created successfully", card: newCard._id });
+      .json({ message: "Card created successfully", card: newCard });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: "Server error", err });
