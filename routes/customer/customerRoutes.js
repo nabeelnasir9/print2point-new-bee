@@ -229,4 +229,36 @@ router.post("/add-location", verifyToken("customer"), async (req, res) => {
   }
 });
 
+router.get(
+  "/available-print-agents",
+  verifyToken("customer"),
+  async (req, res) => {
+    try {
+      const customer = await Customer.findById(req.user.id);
+      if (!customer) {
+        return res.status(400).json({ message: "User not found" });
+      }
+
+      const locations = await Location.find({
+        zip_code: customer.location.zip_code,
+        state: customer.location.state,
+      }).populate("printAgents");
+      const printAgents = locations.map((location) => {
+        return location.printAgents;
+      });
+
+      const availablePrintAgents = printAgents.filter((agents) => {
+        return agents.some((agent) => agent.is_available);
+      });
+      res.status(200).json({
+        message: "Locations retrieved successfully",
+        availablePrintAgents,
+      });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ message: "Server error", err });
+    }
+  },
+);
+
 module.exports = router;

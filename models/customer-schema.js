@@ -22,6 +22,7 @@ const customerSchema = new mongoose.Schema({
   verified_email: { type: Boolean, default: false },
   phone_number: { type: String, match: /^\+[0-9]{2,3}\d{9,10}$/ },
   created_at: { type: Date, default: Date.now },
+  stripe_customer_id: { type: String },
   updated_at: { type: Date, default: Date.now },
 });
 
