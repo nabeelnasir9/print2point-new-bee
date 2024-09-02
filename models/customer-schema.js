@@ -13,6 +13,10 @@ const customerSchema = new mongoose.Schema({
     zip_code: { type: String },
     country: { type: String },
   },
+  locationRef: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Location",
+  },
   otp: { type: String },
   otp_expiry: { type: Date },
   verified_email: { type: Boolean, default: false },

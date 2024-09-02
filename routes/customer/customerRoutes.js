@@ -1,11 +1,12 @@
 const express = require("express");
+const Location = require("../../models/locations-schema.js");
 const verifyToken = require("../../middleware/verifyToken.js");
 const Customer = require("../../models/customer-schema.js");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
 const router = express.Router();
 
-router.post("/create-card", verifyToken, async (req, res) => {
+router.post("/create-card", verifyToken("customer"), async (req, res) => {
   try {
     const { card } = req.body;
     const customer = await Customer.findById(req.user.id);
@@ -32,7 +33,7 @@ router.post("/create-card", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/get-cards", verifyToken, async (req, res) => {
+router.get("/get-cards", verifyToken("customer"), async (req, res) => {
   try {
     const customer = await Customer.findById(req.user.id).populate("cards");
     if (!customer) {
@@ -51,7 +52,7 @@ router.get("/get-cards", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/get-card/:cardId", verifyToken, async (req, res) => {
+router.get("/get-card/:cardId", verifyToken("customer"), async (req, res) => {
   try {
     const { cardId } = req.params;
 
@@ -72,81 +73,89 @@ router.get("/get-card/:cardId", verifyToken, async (req, res) => {
   }
 });
 
-router.delete("/delete-card/:cardId", verifyToken, async (req, res) => {
-  try {
-    const { cardId } = req.params;
-    const customer = await Customer.findById(req.user.id);
-    if (!customer) {
-      return res.status(400).json({ message: "User not found" });
+router.delete(
+  "/delete-card/:cardId",
+  verifyToken("customer"),
+  async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const customer = await Customer.findById(req.user.id);
+      if (!customer) {
+        return res.status(400).json({ message: "User not found" });
+      }
+
+      const card = await Card.findById(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      if (!customer.cards.includes(cardId)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      await Card.deleteOne({ _id: cardId });
+      customer.cards = customer.cards.filter((id) => id !== cardId);
+      await customer.save();
+
+      res.status(200).json({ message: "Card deleted successfully" });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ message: "Server error", err });
     }
-
-    const card = await Card.findById(cardId);
-    if (!card) {
-      return res.status(404).json({ message: "Card not found" });
-    }
-
-    if (!customer.cards.includes(cardId)) {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
-
-    await Card.deleteOne({ _id: cardId });
-    customer.cards = customer.cards.filter((id) => id !== cardId);
-    await customer.save();
-
-    res.status(200).json({ message: "Card deleted successfully" });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: "Server error", err });
-  }
-});
+  },
+);
 
 //  PUT request to update card
 //  INFO: allows partial updates
 
-router.put("/update-card/:cardId", verifyToken, async (req, res) => {
-  try {
-    const { cardId } = req.params;
-    const { bank_name, card_number, expiry_date, phone_number } = req.body;
+router.put(
+  "/update-card/:cardId",
+  verifyToken("customer"),
+  async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const { bank_name, card_number, expiry_date, phone_number } = req.body;
 
-    const customer = await Customer.findById(req.user.id);
-    if (!customer) {
-      return res.status(400).json({ message: "User not found" });
-    }
+      const customer = await Customer.findById(req.user.id);
+      if (!customer) {
+        return res.status(400).json({ message: "User not found" });
+      }
 
-    const cardToUpdate = await Card.findById(cardId);
-    if (!cardToUpdate) {
-      return res.status(404).json({ message: "Card not found" });
-    }
+      const cardToUpdate = await Card.findById(cardId);
+      if (!cardToUpdate) {
+        return res.status(404).json({ message: "Card not found" });
+      }
 
-    if (!customer.cards.includes(cardId)) {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
+      if (!customer.cards.includes(cardId)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
 
-    if (bank_name !== undefined) {
-      cardToUpdate.bank_name = bank_name;
-    }
-    if (card_number !== undefined) {
-      cardToUpdate.card_number = card_number;
-    }
-    if (expiry_date !== undefined) {
-      cardToUpdate.expiry_date = expiry_date;
-    }
-    if (phone_number !== undefined) {
-      cardToUpdate.phone_number = phone_number;
-    }
+      if (bank_name !== undefined) {
+        cardToUpdate.bank_name = bank_name;
+      }
+      if (card_number !== undefined) {
+        cardToUpdate.card_number = card_number;
+      }
+      if (expiry_date !== undefined) {
+        cardToUpdate.expiry_date = expiry_date;
+      }
+      if (phone_number !== undefined) {
+        cardToUpdate.phone_number = phone_number;
+      }
 
-    await cardToUpdate.save();
+      await cardToUpdate.save();
 
-    res.status(200).json({ message: "Card updated successfully" });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: "Server error", err });
-  }
-});
+      res.status(200).json({ message: "Card updated successfully" });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ message: "Server error", err });
+    }
+  },
+);
 
 router.put(
   "/update-card/:cardId",
-  verifyToken,
+  verifyToken("customer"),
   validateUpdateCard,
   async (req, res) => {
     try {
@@ -182,5 +191,42 @@ router.put(
     }
   },
 );
+
+router.post("/add-location", verifyToken("customer"), async (req, res) => {
+  try {
+    const { location } = req.body;
+    const customer = await Customer.findById(req.user.id);
+    if (!customer) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    const lowerCaseState = location.state.toLowerCase();
+    const lowerCaseZipCode = location.zip_code.toLowerCase();
+
+    const existingLocation = await Location.findOne({
+      zip_code: lowerCaseZipCode,
+      state: lowerCaseState,
+    });
+
+    if (!existingLocation) {
+      return res.status(400).json({ message: "Location not allowed" });
+    }
+
+    customer.location = {
+      ...location,
+      state: lowerCaseState,
+      zip_code: lowerCaseZipCode,
+    };
+    customer.locationRef = existingLocation._id;
+    await customer.save();
+
+    res.status(200).json({
+      message: "Location added successfully",
+      location: customer.location,
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
 
 module.exports = router;

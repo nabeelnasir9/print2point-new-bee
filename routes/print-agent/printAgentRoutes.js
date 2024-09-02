@@ -9,7 +9,7 @@ const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
 const router = express.Router();
 
-router.post("/additional-info", verifyToken, async (req, res) => {
+router.post("/additional-info", verifyToken("printAgent"), async (req, res) => {
   try {
     const { personal_info, location, personal_phone_number, card } = req.body;
 
@@ -39,7 +39,7 @@ router.post("/additional-info", verifyToken, async (req, res) => {
   }
 });
 
-router.post("/create-card", verifyToken, async (req, res) => {
+router.post("/create-card", verifyToken("printAgent"), async (req, res) => {
   try {
     const { card } = req.body;
     //INFO: req.user.id is the id we get from the token
@@ -67,7 +67,7 @@ router.post("/create-card", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/get-cards", verifyToken, async (req, res) => {
+router.get("/get-cards", verifyToken("printAgent"), async (req, res) => {
   try {
     const printAgent = await PrintAgent.findById(req.user.id).populate("cards");
     if (!printAgent) {
@@ -86,7 +86,7 @@ router.get("/get-cards", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/get-card/:cardId", verifyToken, async (req, res) => {
+router.get("/get-card/:cardId", verifyToken("printAgent"), async (req, res) => {
   try {
     const { cardId } = req.params;
 
@@ -108,39 +108,43 @@ router.get("/get-card/:cardId", verifyToken, async (req, res) => {
 });
 
 //INFO: allows partial updates
-router.delete("/delete-card/:cardId", verifyToken, async (req, res) => {
-  try {
-    const { cardId } = req.params;
-    const printAgent = await PrintAgent.findById(req.user.id);
-    if (!printAgent) {
-      return res.status(400).json({ message: "User not found" });
+router.delete(
+  "/delete-card/:cardId",
+  verifyToken("printAgent"),
+  async (req, res) => {
+    try {
+      const { cardId } = req.params;
+      const printAgent = await PrintAgent.findById(req.user.id);
+      if (!printAgent) {
+        return res.status(400).json({ message: "User not found" });
+      }
+
+      const card = await Card.findById(cardId);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+
+      if (!printAgent.cards.includes(cardId)) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      await Card.deleteOne({ _id: cardId });
+      printAgent.cards = printAgent.cards.filter((id) => id !== cardId);
+      await printAgent.save();
+
+      res.status(200).json({ message: "Card deleted successfully" });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ message: "Server error", err });
     }
-
-    const card = await Card.findById(cardId);
-    if (!card) {
-      return res.status(404).json({ message: "Card not found" });
-    }
-
-    if (!printAgent.cards.includes(cardId)) {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
-
-    await Card.deleteOne({ _id: cardId });
-    printAgent.cards = printAgent.cards.filter((id) => id !== cardId);
-    await printAgent.save();
-
-    res.status(200).json({ message: "Card deleted successfully" });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: "Server error", err });
-  }
-});
+  },
+);
 //  PUT request to update card
 //  INFO: allows partial updates
 
 router.put(
   "/update-card/:cardId",
-  verifyToken,
+  verifyToken("printAgent"),
   validateUpdateCard,
   async (req, res) => {
     try {
@@ -179,7 +183,7 @@ router.put(
 );
 
 // Add location to print agent and only allow if it exists in the locations collection by getting all the locations in location schema and checking if it matches with any state or zip code
-router.post("/add-location", verifyToken, async (req, res) => {
+router.post("/add-location", verifyToken("printAgent"), async (req, res) => {
   try {
     const { location } = req.body;
     const printAgent = await PrintAgent.findById(req.user.id);
@@ -217,7 +221,7 @@ router.post("/add-location", verifyToken, async (req, res) => {
 });
 
 // should send a mail with an otp which when entered switches the is_available to true and vice versa
-router.get("/availability", verifyToken, async (req, res) => {
+router.get("/online-status", verifyToken("printAgent"), async (req, res) => {
   try {
     const printAgent = await PrintAgent.findById(req.user.id);
     if (!printAgent) {
@@ -259,7 +263,7 @@ router.get("/availability", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/verify-avail-otp/:otp", verifyToken, async (req, res) => {
+router.get("/status-otp/:otp", verifyToken("printAgent"), async (req, res) => {
   try {
     const { otp } = req.params;
     const printAgent = await PrintAgent.findById(req.user.id);

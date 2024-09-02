@@ -32,7 +32,7 @@ router.post("/create-admin", async (req, res) => {
 
     res.status(201).json({
       message: "Admin created successfully",
-      admin,
+      newAdmin,
     });
   } catch (err) {
     console.error(err.message);
@@ -55,8 +55,9 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid password" });
     }
     const payload = {
-      admin: {
+      user: {
         id: admin.id,
+        role: "admin",
       },
     };
 
@@ -80,7 +81,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/customers", verifyToken, async (_req, res) => {
+router.get("/customers", verifyToken("admin"), async (_req, res) => {
   try {
     const customers = await Customer.find();
     res.status(200).json({
@@ -92,7 +93,7 @@ router.get("/customers", verifyToken, async (_req, res) => {
   }
 });
 
-router.get("/customers/:id", verifyToken, async (req, res) => {
+router.get("/customers/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -111,7 +112,7 @@ router.get("/customers/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.delete("/customers/:id", verifyToken, async (req, res) => {
+router.delete("/customers/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -129,8 +130,30 @@ router.delete("/customers/:id", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Server error", err });
   }
 });
+
+router.put("/customers/:id", verifyToken("admin"), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid customer ID" });
+    }
+    const customer = await Customer.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    res.status(200).json({
+      message: "Customer updated successfully",
+      customer,
+    });
+  } catch (err) {
+    console.error("Error updating customer:", err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
 // Get all print agents
-router.get("/print-agents", verifyToken, async (_req, res) => {
+router.get("/print-agents", verifyToken("admin"), async (_req, res) => {
   try {
     const printAgents = await PrintAgent.find();
     res.status(200).json({
@@ -143,7 +166,7 @@ router.get("/print-agents", verifyToken, async (_req, res) => {
 });
 
 // Get a single print agent
-router.get("/print-agents/:id", verifyToken, async (req, res) => {
+router.get("/print-agents/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -163,7 +186,7 @@ router.get("/print-agents/:id", verifyToken, async (req, res) => {
 });
 
 // delete a print agent
-router.delete("/print-agents/:id", verifyToken, async (req, res) => {
+router.delete("/print-agents/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -180,9 +203,31 @@ router.delete("/print-agents/:id", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Server error", err });
   }
 });
-// add location to print agent
 
-router.post("/locations", verifyToken, async (req, res) => {
+router.put("/print-agents/:id", verifyToken("admin"), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid print agent ID" });
+    }
+    const printAgent = await PrintAgent.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+    if (!printAgent) {
+      return res.status(404).json({ message: "Print agent not found" });
+    }
+    res.status(200).json({
+      message: "Print agent updated successfully",
+      printAgent,
+    });
+  } catch (err) {
+    console.error("Error updating print agent:", err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+// add location for print agents verification.
+router.post("/locations", verifyToken("admin"), async (req, res) => {
   try {
     const { city, state, zip_code, country } = req.body;
     const lowerCaseCity = city.toLowerCase();
@@ -207,7 +252,7 @@ router.post("/locations", verifyToken, async (req, res) => {
 });
 
 // Get all locations with their associated print agents
-router.get("/locations", verifyToken, async (_req, res) => {
+router.get("/locations", verifyToken("admin"), async (_req, res) => {
   try {
     const locations = await Location.find();
     res
@@ -219,7 +264,7 @@ router.get("/locations", verifyToken, async (_req, res) => {
   }
 });
 
-router.get("/locations/:id", verifyToken, async (req, res) => {
+router.get("/locations/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -238,7 +283,7 @@ router.get("/locations/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.delete("/locations/:id", verifyToken, async (req, res) => {
+router.delete("/locations/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -254,11 +299,9 @@ router.delete("/locations/:id", verifyToken, async (req, res) => {
 
     await location.deleteOne();
 
-    res
-      .status(200)
-      .json({
-        message: "Location deleted and associated agents disabled successfully",
-      });
+    res.status(200).json({
+      message: "Location deleted and associated agents disabled successfully",
+    });
   } catch (err) {
     console.error("Error deleting location:", err.message);
     res.status(500).json({ message: "Server error", err });
@@ -266,7 +309,7 @@ router.delete("/locations/:id", verifyToken, async (req, res) => {
 });
 
 // If location is updated, deactivate agents associated with that location
-router.put("/locations/:id", verifyToken, async (req, res) => {
+router.put("/locations/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {

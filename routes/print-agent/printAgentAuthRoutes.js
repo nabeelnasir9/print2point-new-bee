@@ -92,6 +92,7 @@ router.post("/verify-otp", async (req, res) => {
     const payload = {
       user: {
         id: printAgent.id,
+        role: "printAgent",
       },
     };
     jwt.sign(
@@ -131,6 +132,7 @@ router.post("/login", async (req, res) => {
     const payload = {
       user: {
         id: printAgent.id,
+        role: "printAgent",
       },
     };
     jwt.sign(
