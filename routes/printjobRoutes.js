@@ -20,7 +20,7 @@ cloudinary.config({
 });
 
 const calculateCost = (pages) => {
-  return pages * 0.01;
+  return pages * 10;
 };
 
 const upload = multer({ dest: "uploads/" });
@@ -37,7 +37,6 @@ router.post(
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // Check if the customer already has a Stripe customer ID
       const customer = await Customer.findById(req.user.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
@@ -45,7 +44,6 @@ router.post(
 
       let stripeCustomerId = customer.stripe_customer_id;
       if (!stripeCustomerId) {
-        // Create a new Stripe customer
         const stripeCustomer = await stripe.customers.create({
           email: customer.email,
           name: customer.full_name,
@@ -55,7 +53,6 @@ router.post(
         await customer.save();
       }
 
-      // Upload file to Cloudinary
       const result = await cloudinary.uploader.upload(req.file.path, {
         resource_type: "auto",
         folder: "print_jobs",
@@ -63,12 +60,10 @@ router.post(
         unique_filename: true,
       });
 
-      // Delete the local file after uploading to Cloudinary
       await unlinkFile(req.file.path);
 
       const file_path = result.secure_url;
 
-      // Get the number of pages (only works for PDFs)
       let pages = 1;
       if (result.format === "pdf") {
         const pdfInfo = await cloudinary.api.resource(result.public_id, {
@@ -77,7 +72,6 @@ router.post(
         pages = pdfInfo.pages || 1;
       }
 
-      // Calculate total cost (implement your pricing logic here)
       const total_cost = calculateCost(pages);
 
       const printJob = new PrintJob({
@@ -96,7 +90,6 @@ router.post(
         .json({ message: "Print job created successfully", printJob });
     } catch (err) {
       console.error(err.message);
-      // If there's an error, try to delete the uploaded file
       if (req.file) {
         await unlinkFile(req.file.path).catch((unlinkError) =>
           console.error("Failed to delete file:", unlinkError),
@@ -107,7 +100,6 @@ router.post(
   },
 );
 
-// 2. Select print agent and update print job
 router.post(
   "/select-print-agent/:jobId",
   verifyToken("customer"),
@@ -133,86 +125,79 @@ router.post(
   },
 );
 
-// 3. Initiate payment
-router.post(
-  "/initiate-payment/:jobId",
-  verifyToken("customer"),
-  async (req, res) => {
-    try {
-      const { card_id } = req.body;
-      const printJob = await PrintJob.findById(req.params.jobId);
-      const customer = await Customer.findById(req.user.id);
+router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
+  try {
+    const { payment_method_id, job_id } = req.body;
+    const printJob = await PrintJob.findById(job_id);
+    const customer = await Customer.findById(req.user.id);
 
-      if (!printJob) {
-        return res.status(404).json({ message: "Print job not found" });
-      }
-
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
-      }
-
-      // Ensure the customer has a Stripe customer ID
-      let stripeCustomerId = customer.stripe_customer_id;
-      if (!stripeCustomerId) {
-        const stripeCustomer = await stripe.customers.create({
-          email: customer.email,
-          name: customer.full_name,
-        });
-        stripeCustomerId = stripeCustomer.id;
-        customer.stripe_customer_id = stripeCustomerId;
-        await customer.save();
-      }
-
-      // Create a PaymentIntent
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(printJob.total_cost * 100), // Stripe uses cents
-        currency: "usd",
-        customer: stripeCustomerId,
-        payment_method: card_id,
-        confirm: true,
-        description: `Payment for Print Job: ${printJob.print_job_title}`,
-        metadata: {
-          print_job_id: printJob._id.toString(),
-          customer_id: customer._id.toString(),
-        },
-      });
-
-      if (paymentIntent.status === "succeeded") {
-        printJob.payment_status = "completed";
-
-        const confirmationCode = otpGenerator.generate(6, {
-          digits: true,
-          alphabets: true,
-          upperCase: true,
-          specialChars: false,
-        });
-        printJob.confirmation_code = confirmationCode;
-        await printJob.save();
-
-        // INFO: add these later
-        // Send confirmation emails
-        // await sendCustomerConfirmationEmail(printJob);
-        // await sendPrintAgentNotificationEmail(printJob);
-
-        res.status(200).json({
-          message: "Payment successful",
-          confirmationCode,
-          payment_intent: paymentIntent.id,
-        });
-      } else {
-        res.status(400).json({
-          message: "Payment not successful",
-          status: paymentIntent.status,
-        });
-      }
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).json({ message: "Server error", err: err.message });
+    if (!printJob) {
+      return res.status(404).json({ message: "Print job not found" });
     }
-  },
-);
 
-// 4. Complete print job
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    let stripeCustomerId = customer.stripe_customer_id;
+    if (!stripeCustomerId) {
+      const stripeCustomer = await stripe.customers.create({
+        email: customer.email,
+        name: customer.full_name,
+      });
+      stripeCustomerId = stripeCustomer.id;
+      customer.stripe_customer_id = stripeCustomerId;
+      await customer.save();
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(printJob.total_cost * 100),
+      currency: "usd",
+      customer: stripeCustomerId,
+      payment_method: payment_method_id,
+      return_url: "http://localhost:5173",
+      confirm: true,
+      description: `Payment for Print Job: ${printJob.print_job_title}`,
+      metadata: {
+        print_job_id: printJob._id.toString(),
+        customer_id: customer._id.toString(),
+      },
+    });
+
+    if (paymentIntent.status === "succeeded") {
+      printJob.payment_status = "completed";
+
+      const confirmationCode = otpGenerator.generate(6, {
+        digits: true,
+        alphabets: true,
+        upperCase: true,
+        specialChars: false,
+      });
+      printJob.confirmation_code = confirmationCode;
+      await printJob.save();
+
+      // TODO: add these later
+      // Send confirmation emails
+      // await sendCustomerConfirmationEmail(printJob);
+      // await sendPrintAgentNotificationEmail(printJob);
+
+      res.status(200).json({
+        message: "Payment successful",
+        confirmationCode,
+        payment_intent: paymentIntent.id,
+      });
+    } else {
+      res.status(400).json({
+        message: "Payment not successful",
+        status: paymentIntent.status,
+      });
+    }
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err: err.message });
+  }
+});
+
 router.post(
   "/complete-print-job/:jobId",
   verifyToken("printAgent"),
