@@ -6,7 +6,7 @@ const {
   sendCustomerConfirmationEmail,
   sendPrintAgentNotificationEmail,
 } = require("../utils/mailOrder.js");
-const nodemailer = require("nodemailer");
+const transporter = require("../utils/transporter.js");
 const PrintJob = require("../models/print-job-schema.js");
 const otpGenerator = require("otp-generator");
 const Customer = require("../models/customer-schema.js");
@@ -17,16 +17,7 @@ const util = require("util");
 const cloudinary = require("cloudinary").v2;
 
 const unlinkFile = util.promisify(fs.unlink);
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: "infosynthseer@gmail.com",
-    pass: "kegj ytci koqp dveq",
-  },
-});
+
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -194,6 +185,7 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
 
       const customerEmailPromise = sendCustomerConfirmationEmail(
         customer.email,
+        customer.full_name,
         confirmationCode,
         printJob.print_job_title,
         transporter,
@@ -202,6 +194,7 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
       const printAgent = await PrintAgent.findById(printJob.print_agent_id);
       const printAgentEmailPromise = sendPrintAgentNotificationEmail(
         printAgent.email,
+        printAgent.full_name,
         printJob.print_job_title,
         transporter,
       );

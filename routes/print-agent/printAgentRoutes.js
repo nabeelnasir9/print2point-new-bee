@@ -229,6 +229,7 @@ router.get("/online-status", verifyToken("printAgent"), async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     const email = printAgent.email;
+    const name = printAgent.full_name;
 
     const otp = otpGenerator.generate(6, {
       digits: true,
@@ -252,7 +253,7 @@ router.get("/online-status", verifyToken("printAgent"), async (req, res) => {
       },
     });
 
-    transporter.sendMail(mailOptions(email, otp), (error) => {
+    transporter.sendMail(mailOptions(email, name, otp), (error) => {
       if (error) {
         return res.status(500).json({ message: "Error sending email" });
       }

@@ -1,10 +1,10 @@
 const Customer = require("../../models/customer-schema.js");
-const mailOptions = require("../../utils/mailOptions.js");
 const express = require("express");
+const customerMailOptions = require("../../utils/mailCustomer.js");
 const bcrypt = require("bcryptjs");
+const transporter = require("../../utils/transporter.js");
 const jwt = require("jsonwebtoken");
 const otpGenerator = require("otp-generator");
-const nodemailer = require("nodemailer");
 const router = express.Router();
 
 router.post("/signup", async (req, res) => {
@@ -34,23 +34,15 @@ router.post("/signup", async (req, res) => {
 
     await customer.save();
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: "infosynthseer@gmail.com",
-        pass: "kegj ytci koqp dveq",
+    transporter.sendMail(
+      customerMailOptions(email, otp, full_name),
+      (error) => {
+        if (error) {
+          return res.status(500).json({ message: "Error sending email" });
+        }
+        res.status(200).json({ message: "OTP sent to your email" });
       },
-    });
-
-    transporter.sendMail(mailOptions(email, otp, "customer"), (error) => {
-      if (error) {
-        return res.status(500).json({ message: "Error sending email" });
-      }
-      res.status(200).json({ message: "OTP sent to your email" });
-    });
+    );
   } catch (err) {
     console.error("Server error:", err);
     res.status(500).json({ message: "Server error", err });

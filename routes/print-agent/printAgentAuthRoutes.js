@@ -1,10 +1,10 @@
 const PrintAgent = require("../../models/print-agent-schema.js");
-const mailOptions = require("../../utils/mailOptions.js");
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const otpGenerator = require("otp-generator");
-const nodemailer = require("nodemailer");
+const transporter = require("../../utils/transporter");
+const agentMailOptions = require("../../utils/mailPrintAgent.js");
 const router = express.Router();
 
 // POST /api/auth/print-agent/signup (print-agent)
@@ -43,18 +43,7 @@ router.post("/signup", async (req, res) => {
 
     await printAgent.save();
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: "infosynthseer@gmail.com",
-        pass: "kegj ytci koqp dveq",
-      },
-    });
-
-    transporter.sendMail(mailOptions(email, otp), (error) => {
+    transporter.sendMail(agentMailOptions(email, otp, full_name), (error) => {
       if (error) {
         return res.status(500).json({ message: "Error sending email" });
       }

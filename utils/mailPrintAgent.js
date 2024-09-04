@@ -1,8 +1,8 @@
-const mailOptions = (email, full_name, otp) => {
+const agentMailOptions = (email, otp, full_name) => {
   return {
     from: process.env.EMAIL,
     to: email,
-    subject: "Change your availability",
+    subject: "Verify your email",
     html: `
         <!doctype html>
         <html lang="en">
@@ -75,7 +75,7 @@ const mailOptions = (email, full_name, otp) => {
                         color: #f7801a;
                       "
                     >
-                      OTP for Availability
+                      OTP for Print Agents
                     </h1>
                     <p
                       style="
@@ -95,9 +95,13 @@ const mailOptions = (email, full_name, otp) => {
                         letter-spacing: 0.56px;
                       "
                     >
-                      Use the following OTP to update your availability. OTP is valid
-                      for
-                      <span style="font-weight: 600; color: #f7801a">5 minutes</span>.
+                      Thank you for choosing
+                      <span style="color: #f7801a; font-weight: 600"
+                        >Print to Point</span
+                      >
+                      Company. Use the following OTP to complete the procedure of
+                      creating an account. OTP is valid for
+                      <span style="font-weight: 600; color: #1f1f1f">5 minutes</span>.
                       Do not share this code with others, including Print to Point
                       employees.
                     </p>
@@ -176,4 +180,4 @@ const mailOptions = (email, full_name, otp) => {
   };
 };
 
-module.exports = mailOptions;
+module.exports = agentMailOptions;
