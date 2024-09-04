@@ -2,6 +2,10 @@ const express = require("express");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const PrintAgent = require("../models/print-agent-schema.js");
 const verifyToken = require("../middleware/verifyToken.js");
+const {
+  sendCustomerConfirmationEmail,
+  sendPrintAgentNotificationEmail,
+} = require("../utils/mailOrder.js");
 const nodemailer = require("nodemailer");
 const PrintJob = require("../models/print-job-schema.js");
 const otpGenerator = require("otp-generator");
@@ -13,7 +17,16 @@ const util = require("util");
 const cloudinary = require("cloudinary").v2;
 
 const unlinkFile = util.promisify(fs.unlink);
-
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: "infosynthseer@gmail.com",
+    pass: "kegj ytci koqp dveq",
+  },
+});
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -183,12 +196,14 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
         customer.email,
         confirmationCode,
         printJob.print_job_title,
+        transporter,
       );
 
       const printAgent = await PrintAgent.findById(printJob.print_agent_id);
       const printAgentEmailPromise = sendPrintAgentNotificationEmail(
         printAgent.email,
         printJob.print_job_title,
+        transporter,
       );
 
       await Promise.all([customerEmailPromise, printAgentEmailPromise]);
@@ -238,43 +253,5 @@ router.post(
     }
   },
 );
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: "infosynthseer@gmail.com",
-    pass: "kegj ytci koqp dveq",
-  },
-});
-const sendCustomerConfirmationEmail = async (
-  customerEmail,
-  confirmationCode,
-  printJobTitle,
-) => {
-  const mailOptions = {
-    from: "infosynthseer@gmail.com",
-    to: customerEmail,
-    subject: "Print Job Confirmation",
-    text: `Your print job "${printJobTitle}" has been successfully processed. Your confirmation code is: ${confirmationCode}.`,
-  };
-
-  return transporter.sendMail(mailOptions);
-};
-
-const sendPrintAgentNotificationEmail = async (
-  printAgentEmail,
-  printJobTitle,
-) => {
-  const mailOptions = {
-    from: "infosynthseer@gmail.com",
-    to: printAgentEmail,
-    subject: "New Print Job Assigned",
-    text: `A new print job titled "${printJobTitle}" has been assigned to you.`,
-  };
-
-  return transporter.sendMail(mailOptions);
-};
 
 module.exports = router;
