@@ -2,7 +2,7 @@ const mailOptions = (email, otp) => {
   return {
     from: process.env.EMAIL,
     to: email,
-    subject: "Change your availability",
+    subject: "Order placed",
     // write simple html just saying this is otp for availability switch for print agent
     html: `
   <!doctype html>
@@ -49,9 +49,9 @@ const mailOptions = (email, otp) => {
       <div class="container">
         <h1>Print to Point</h1>
         <p>
-          update your availability
+          Your order has been placed.
         </p>
-        <p class="otp">This is your OTP: ${otp}</p>
+        <p class="otp">This is your confirmation code: ${otp}</p>
       </div>
     </body>
   </html>

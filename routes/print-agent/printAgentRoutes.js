@@ -7,6 +7,7 @@ const mailOptions = require("../../utils/mailOTP.js");
 const nodemailer = require("nodemailer");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
+const PrintJob = require("../../models/print-job-schema.js");
 const router = express.Router();
 
 router.post("/additional-info", verifyToken("printAgent"), async (req, res) => {
@@ -287,6 +288,19 @@ router.get("/status-otp/:otp", verifyToken("printAgent"), async (req, res) => {
     res.status(200).json({ message: "Availability updated successfully" });
   } catch (err) {
     console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+router.get("/print-jobs", verifyToken("printAgent"), async (req, res) => {
+  try {
+    console.log(req.user.id);
+    const printJobs = await PrintJob.find({ print_agent_id: req.user.id });
+    res.status(200).json({
+      message: "All print jobs fetched successfully",
+      printJobs,
+    });
+  } catch (err) {
     res.status(500).json({ message: "Server error", err });
   }
 });

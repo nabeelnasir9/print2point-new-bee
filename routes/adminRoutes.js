@@ -1,5 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const PrintJob = require("../models/print-job-schema.js");
 const Admin = require("../models/admin-schema");
 const mongoose = require("mongoose");
 const Location = require("../models/locations-schema.js");
@@ -308,7 +309,6 @@ router.delete("/locations/:id", verifyToken("admin"), async (req, res) => {
   }
 });
 
-// If location is updated, deactivate agents associated with that location
 router.put("/locations/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
@@ -339,6 +339,20 @@ router.put("/locations/:id", verifyToken("admin"), async (req, res) => {
       "Error updating location and deactivating agents:",
       err.message,
     );
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+router.get("/print-jobs", verifyToken("admin"), async (_req, res) => {
+  try {
+    const printJobs = await PrintJob.find()
+      .populate("print_agent_id")
+      .populate("customer_id");
+    res.status(200).json({
+      message: "All print jobs fetched successfully",
+      printJobs,
+    });
+  } catch (err) {
     res.status(500).json({ message: "Server error", err });
   }
 });
