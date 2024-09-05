@@ -294,8 +294,7 @@ const sendPrintAgentNotificationEmail = async (
                 letter-spacing: 0.56px;
               "
             >
-              An order has been placed with the following title
-              '${printJobTitle}' for you.
+              A new Print job with title <b>${printJobTitle}</b> job has been assigned to you.
             </p>
             <p
               style="
