@@ -11,7 +11,7 @@ const router = express.Router();
 /**
  *
  * @class
- * @classdesc  PERF: enums for business_type but hishmat could be chutiya
+ * @classdesc  PERF: enums for business_type but could change
  */
 router.post("/signup", async (req, res) => {
   try {
