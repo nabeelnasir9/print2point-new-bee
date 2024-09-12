@@ -142,4 +142,39 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.post("/resend-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const printAgent = await PrintAgent.findOne({ email });
+    if (!printAgent) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const otp = otpGenerator.generate(6, {
+      digits: true,
+      alphabets: true,
+      upperCase: true,
+      specialChars: false,
+    });
+    const otp_expiry = new Date(Date.now() + 300000);
+
+    printAgent.otp = otp;
+    printAgent.otp_expiry = otp_expiry;
+    await printAgent.save();
+
+    transporter.sendMail(
+      agentMailOptions(email, otp, printAgent.full_name),
+      (error) => {
+        if (error) {
+          return res.status(500).json({ message: "Error sending email" });
+        }
+        res.status(200).json({ message: "OTP sent to your email" });
+      },
+    );
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
 module.exports = router;
