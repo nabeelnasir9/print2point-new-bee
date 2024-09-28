@@ -1,4 +1,5 @@
 const PrintAgent = require("../../models/print-agent-schema.js");
+const Location = require("../../models/locations-schema.js");
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -23,6 +24,16 @@ router.post("/signup", async (req, res) => {
       business_type,
       zip_code,
     } = req.body;
+    if (
+      !email ||
+      !password ||
+      !full_name ||
+      !business_name ||
+      !business_type ||
+      !zip_code
+    ) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
 
     // Check if user already exists
     let printAgent = await PrintAgent.findOne({ email });
@@ -42,7 +53,6 @@ router.post("/signup", async (req, res) => {
       return res.status(400).json({ message: "Location not supported" });
     }
 
-    // Generate OTP
     const otp = otpGenerator.generate(6, {
       digits: true,
       alphabets: true,
@@ -51,7 +61,6 @@ router.post("/signup", async (req, res) => {
     });
     const otp_expiry = new Date(Date.now() + 300000); // OTP expires in 5 minutes
 
-    // Create new PrintAgent
     printAgent = new PrintAgent({
       email,
       password,
