@@ -26,8 +26,11 @@
     "stripe": "^16.9.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
-    "@types/morgan": "^1.9.9"
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/morgan": "^1.9.9",
+    "@types/otp-generator": "^4.0.2"
   }
 }

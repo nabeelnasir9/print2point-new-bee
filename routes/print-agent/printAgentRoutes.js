@@ -191,12 +191,10 @@ router.post("/add-location", verifyToken("printAgent"), async (req, res) => {
     if (!printAgent) {
       return res.status(400).json({ message: "User not found" });
     }
-    const lowerCaseState = location.state.toLowerCase();
     const lowerCaseZipCode = location.zip_code.toLowerCase();
 
     const existingLocation = await Location.findOne({
       zip_code: lowerCaseZipCode,
-      state: lowerCaseState,
     });
 
     if (!existingLocation) {
@@ -205,7 +203,6 @@ router.post("/add-location", verifyToken("printAgent"), async (req, res) => {
 
     printAgent.location = {
       ...location,
-      state: lowerCaseState,
       zip_code: lowerCaseZipCode,
     };
     printAgent.locationRef = existingLocation._id;

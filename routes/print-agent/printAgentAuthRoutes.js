@@ -15,22 +15,43 @@ const router = express.Router();
  */
 router.post("/signup", async (req, res) => {
   try {
-    const { email, password, full_name, business_name, business_type } =
-      req.body;
+    const {
+      email,
+      password,
+      full_name,
+      business_name,
+      business_type,
+      zip_code,
+    } = req.body;
 
+    // Check if user already exists
     let printAgent = await PrintAgent.findOne({ email });
     if (printAgent) {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Convert state and zip_code to lowercase for consistency
+    const lowerCaseZipCode = zip_code.toLowerCase();
+
+    // Check if location exists in the Location schema
+    const existingLocation = await Location.findOne({
+      zip_code: lowerCaseZipCode,
+    });
+
+    if (!existingLocation) {
+      return res.status(400).json({ message: "Location not supported" });
+    }
+
+    // Generate OTP
     const otp = otpGenerator.generate(6, {
       digits: true,
       alphabets: true,
       upperCase: true,
       specialChars: false,
     });
-    const otp_expiry = new Date(Date.now() + 300000);
+    const otp_expiry = new Date(Date.now() + 300000); // OTP expires in 5 minutes
 
+    // Create new PrintAgent
     printAgent = new PrintAgent({
       email,
       password,
@@ -39,10 +60,16 @@ router.post("/signup", async (req, res) => {
       business_type,
       otp,
       otp_expiry,
+      location: {
+        zip_code: lowerCaseZipCode,
+      },
+      locationRef: existingLocation._id, // Reference the location in the schema
     });
 
+    // Save new PrintAgent
     await printAgent.save();
 
+    // Send OTP email
     transporter.sendMail(agentMailOptions(email, otp, full_name), (error) => {
       if (error) {
         return res.status(500).json({ message: "Error sending email" });
@@ -54,7 +81,6 @@ router.post("/signup", async (req, res) => {
     res.status(500).json({ message: "Server error", err });
   }
 });
-
 // POST /api/auth/customer/verify-otp (customer)
 router.post("/verify-otp", async (req, res) => {
   try {
