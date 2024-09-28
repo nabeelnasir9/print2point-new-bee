@@ -24,5 +24,10 @@
     "nodemailer": "^6.9.14",
     "otp-generator": "^4.0.1",
     "stripe": "^16.9.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/morgan": "^1.9.9"
   }
 }
