@@ -212,4 +212,84 @@ router.post("/resend-otp", async (req, res) => {
   }
 });
 
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const printAgent = await PrintAgent.findOne({ email });
+    if (!printAgent) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const otp = otpGenerator.generate(6, {
+      digits: true,
+      alphabets: true,
+      upperCase: true,
+      specialChars: false,
+    });
+    const otp_expiry = new Date(Date.now() + 300000);
+
+    printAgent.otp = otp;
+    printAgent.otp_expiry = otp_expiry;
+    await printAgent.save();
+
+    transporter.sendMail(
+      agentMailOptions(email, otp, printAgent.full_name),
+      (error) => {
+        if (error) {
+          return res.status(500).json({ message: "Error sending email" });
+        }
+        res
+          .status(200)
+          .json({ message: "OTP sent to your email to reset password" });
+      },
+    );
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+    const printAgent = await PrintAgent.findOne({ email });
+    if (!printAgent) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const current = new Date();
+    if (current > printAgent.otp_expiry) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
+
+    if (printAgent.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    printAgent.password = password;
+    printAgent.otp = null;
+    printAgent.otp_expiry = null;
+    await printAgent.save();
+    const payload = {
+      user: {
+        id: printAgent.id,
+        role: "printAgent",
+      },
+    };
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      //INFO: revert it back after dev to 5h
+      { expiresIn: "10 days" },
+      (err, token) => {
+        if (err) throw err;
+        res.json({ message: "Password reset successfully", token });
+      },
+    );
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
 module.exports = router;
