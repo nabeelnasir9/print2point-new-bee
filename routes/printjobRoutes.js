@@ -219,19 +219,16 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
 });
 
 router.post(
-  "/complete-print-job/:jobId",
+  "/complete-print-job",
   verifyToken("printAgent"),
   async (req, res) => {
     try {
       const { confirmation_code } = req.body;
-      const printJob = await PrintJob.findById(req.params.jobId);
+
+      const printJob = await PrintJob.findOne({ confirmation_code });
 
       if (!printJob) {
         return res.status(404).json({ message: "Print job not found" });
-      }
-
-      if (printJob.confirmation_code !== confirmation_code) {
-        return res.status(400).json({ message: "Invalid confirmation code" });
       }
 
       printJob.status = "completed";
