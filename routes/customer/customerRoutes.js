@@ -238,7 +238,6 @@ router.get(
 
       const locations = await Location.find({
         zip_code: customer.location.zip_code,
-        state: customer.location.state,
       }).populate("printAgents");
       const printAgents = locations.map((location) => {
         return location.printAgents;
