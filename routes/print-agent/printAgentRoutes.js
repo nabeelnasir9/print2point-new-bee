@@ -290,6 +290,98 @@ router.get("/status-otp/:otp", verifyToken("printAgent"), async (req, res) => {
   }
 });
 
+router.get("/all-customers", verifyToken("printAgent"), async (req, res) => {
+  try {
+    const printAgent = await PrintAgent.findById(req.user.id);
+    if (!printAgent) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const printJobs = await PrintJob.find({ print_agent_id: printAgent._id })
+      .populate("customer_id", "full_name email location")
+      .exec();
+
+    const customers = printJobs
+      .map((job) => job.customer_id)
+      .filter((customer) => customer !== null)
+      .filter(
+        (customer, index, self) =>
+          self.findIndex((c) => c._id.equals(customer._id)) === index,
+      );
+
+    res
+      .status(200)
+      .json({ message: "Customers retrieved successfully", customers });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+router.get("/summary", verifyToken("printAgent"), async (req, res) => {
+  try {
+    const printAgent = await PrintAgent.findById(req.user.id);
+    if (!printAgent) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const printJobs = await PrintJob.find({ print_agent_id: printAgent._id })
+      .populate("customer_id", "_id")
+      .exec();
+
+    const totalOrders = printJobs.length;
+    const uniqueCustomers = printJobs
+      .map((job) => job.customer_id)
+      .filter((customer) => customer !== null);
+    const totalCustomers = new Set(
+      uniqueCustomers.map((customer) => customer._id.toString()),
+    ).size;
+    const totalCompletedJobs = printJobs.filter(
+      (job) => job.payment_status === "completed",
+    ).length;
+    const totalPendingJobs = printJobs.filter(
+      (job) => job.payment_status === "pending",
+    ).length;
+    const totalRevenue = printJobs
+      .filter((job) => job.payment_status === "completed")
+      .reduce((sum, job) => sum + job.total_cost, 0);
+    const averageJobValue =
+      totalCompletedJobs > 0
+        ? (totalRevenue / totalCompletedJobs).toFixed(2)
+        : 0;
+    const jobCompletionRate =
+      totalOrders > 0
+        ? ((totalCompletedJobs / totalOrders) * 100).toFixed(2)
+        : 0;
+    const lastJobDate =
+      printJobs.length > 0
+        ? new Date(
+            Math.max(...printJobs.map((job) => new Date(job.created_at))),
+          ).toISOString()
+        : null;
+    const totalPagesPrinted = printJobs.reduce(
+      (sum, job) => sum + job.pages,
+      0,
+    );
+
+    res.status(200).json({
+      message: "Summary retrieved successfully",
+      totalOrders,
+      totalCustomers,
+      totalCompletedJobs,
+      totalPendingJobs,
+      totalRevenue,
+      averageJobValue,
+      jobCompletionRate,
+      lastJobDate,
+      totalPagesPrinted,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
 router.get("/print-jobs", verifyToken("printAgent"), async (req, res) => {
   try {
     console.log(req.user.id);
