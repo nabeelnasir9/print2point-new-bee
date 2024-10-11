@@ -172,7 +172,7 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
     });
 
     if (paymentIntent.status === "succeeded") {
-      printJob.payment_status = "completed";
+      // printJob.payment_status = "completed";
 
       const confirmationCode = otpGenerator.generate(6, {
         digits: true,
