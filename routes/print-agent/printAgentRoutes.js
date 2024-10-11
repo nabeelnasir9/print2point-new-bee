@@ -245,8 +245,8 @@ router.get("/online-status", verifyToken("printAgent"), async (req, res) => {
       port: 465,
       secure: true,
       auth: {
-        user: "infosynthseer@gmail.com",
-        pass: "kegj ytci koqp dveq",
+        user: "print2pointt@gmail.com",
+        pass: "tebd siwh pwfg xifk",
       },
     });
 
