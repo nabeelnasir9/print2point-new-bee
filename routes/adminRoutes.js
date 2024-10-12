@@ -357,4 +357,31 @@ router.get("/print-jobs", verifyToken("admin"), async (_req, res) => {
   }
 });
 
+// Update a print job with agent_payment_status
+router.post("/print-jobs/:id", verifyToken("admin"), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid print job ID" });
+    }
+    const { agent_payment_status } = req.body;
+
+    const printJob = await PrintJob.findById(id);
+    printJob.agent_payment_status = agent_payment_status;
+    await printJob.save();
+
+    if (!printJob) {
+      return res.status(404).json({ message: "Print job not found" });
+    }
+
+    res.status(200).json({
+      message: "Print job updated successfully",
+      printJob,
+    });
+  } catch (err) {
+    console.error("Error updating print job:", err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
 module.exports = router;

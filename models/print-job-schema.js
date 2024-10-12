@@ -16,6 +16,12 @@ const printJobSchema = new mongoose.Schema({
     default: "pending",
   },
   total_cost: { type: Number, required: true },
+  agent_payment_status: {
+    type: String,
+    enum: ["pending", "completed"],
+    default: "pending",
+    required: true,
+  },
 });
 
 // Pre-save hook to update the 'updated_at' field
