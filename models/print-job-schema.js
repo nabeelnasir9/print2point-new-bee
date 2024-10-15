@@ -6,6 +6,7 @@ const printJobSchema = new mongoose.Schema({
   file_path: { type: String, required: true },
   print_job_title: { type: String, required: true },
   confirmation_code: { type: String },
+  is_color: { type: Boolean, required: true },
   print_job_description: { type: String, required: true },
   pages: { type: Number, required: true },
   created_at: { type: Date, default: Date.now },
