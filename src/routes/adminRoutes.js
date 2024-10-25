@@ -252,7 +252,6 @@ router.post("/locations", verifyToken("admin"), async (req, res) => {
   }
 });
 
-// Get all locations with their associated print agents
 router.get("/locations", verifyToken("admin"), async (_req, res) => {
   try {
     const locations = await Location.find();
