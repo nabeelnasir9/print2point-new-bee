@@ -252,6 +252,7 @@ router.post("/locations", verifyToken("admin"), async (req, res) => {
   }
 });
 
+// Get all locations with their associated print agents
 router.get("/locations", verifyToken("admin"), async (_req, res) => {
   try {
     const locations = await Location.find();
@@ -356,6 +357,7 @@ router.get("/print-jobs", verifyToken("admin"), async (_req, res) => {
   }
 });
 
+// Update a print job with agent_payment_status
 router.post("/print-jobs/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
