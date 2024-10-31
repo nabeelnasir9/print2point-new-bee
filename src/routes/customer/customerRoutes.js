@@ -239,13 +239,12 @@ router.get(
       const locations = await Location.find({
         zip_code: customer.location.zip_code,
       }).populate("printAgents");
-      const printAgents = locations.map((location) => {
-        return location.printAgents;
-      });
 
-      const availablePrintAgents = printAgents.filter((agents) => {
-        return agents.some((agent) => agent.is_available);
-      });
+      // Flatten the array of print agents and filter by availability
+      const availablePrintAgents = locations
+        .flatMap((location) => location.printAgents)
+        .filter((agent) => agent.is_available);
+
       res.status(200).json({
         message: "Locations retrieved successfully",
         availablePrintAgents,
@@ -256,5 +255,4 @@ router.get(
     }
   },
 );
-
 module.exports = router;
