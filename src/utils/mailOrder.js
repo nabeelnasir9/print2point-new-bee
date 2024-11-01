@@ -2,6 +2,7 @@ const sendCustomerConfirmationEmail = async (
   customerEmail,
   customerFullName,
   confirmationCode,
+  PrintJobId,
   printJobTitle,
   transporter,
 ) => {
@@ -102,6 +103,18 @@ const sendCustomerConfirmationEmail = async (
               "
             >
               Your order has been confirmed. You can print your job now.
+            </p>
+            <p
+              style="
+                margin: 0;
+                margin-top: 17px;
+                font-weight: 500;
+                letter-spacing: 0.56px;
+              "
+            >
+              Your Job ID is
+              <span style="font-weight: 600">${PrintJobId}</span>.
+              <br />
             </p>
             <p
               style="

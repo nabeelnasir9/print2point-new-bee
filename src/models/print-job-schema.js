@@ -12,6 +12,11 @@ const printJobSchema = new mongoose.Schema({
   pages: { type: Number, required: true },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
+  status: {
+    type: String,
+    enum: ["pending", "completed"],
+    default: "pending",
+  },
   payment_status: {
     type: String,
     enum: ["pending", "completed"],

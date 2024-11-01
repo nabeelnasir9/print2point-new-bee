@@ -179,12 +179,14 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
         specialChars: false,
       });
       printJob.confirmation_code = confirmationCode;
+      printJob.payment_status = "completed";
       await printJob.save();
 
       const customerEmailPromise = sendCustomerConfirmationEmail(
         customer.email,
         customer.full_name,
         confirmationCode,
+        printJob._id,
         printJob.print_job_title,
         transporter,
       );
