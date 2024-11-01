@@ -1,6 +1,7 @@
 const express = require("express");
 const Location = require("../../models/locations-schema.js");
 const verifyToken = require("../../middleware/verifyToken.js");
+const Tickets = require("../../models/tickets-schema.js");
 const Customer = require("../../models/customer-schema.js");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
@@ -255,4 +256,47 @@ router.get(
     }
   },
 );
+// What the body will look like for the tickets
+// {
+//   full_name: "John Doe",
+//   email: "johndoe@example.com",
+//   order_number: "123456789",
+//   message: "Please deliver the package to the address",
+//   bank: {
+//     bank_name: "Bank of America",
+//     bank_number: "123456789",
+//     full_name_bank: "John Doe",
+//   },
+// }
+
+router.post("/create-ticket", verifyToken("customer"), async (req, res) => {
+  try {
+    // The bank details are not required for the ticket but can be added here.
+    const { full_name, email, order_number, message, bank } = req.body;
+    const customer = await Customer.findById(req.user.id);
+    if (!customer) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    const newTicket = new Tickets({
+      full_name,
+      email,
+      order_number,
+      message,
+      status: "pending",
+      customer_id: customer._id,
+      bank,
+    });
+
+    await newTicket.save();
+
+    res
+      .status(201)
+      .json({ message: "Ticket created successfully", ticket: newTicket });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
 module.exports = router;

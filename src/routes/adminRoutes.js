@@ -8,6 +8,7 @@ const Customer = require("../models/customer-schema.js");
 const PrintAgent = require("../models/print-agent-schema.js");
 const jwt = require("jsonwebtoken");
 const verifyToken = require("../middleware/verifyToken");
+const Tickets = require("../models/tickets-schema.js");
 const router = express.Router();
 
 router.post("/create-admin", async (req, res) => {
@@ -380,6 +381,46 @@ router.post("/print-jobs/:id", verifyToken("admin"), async (req, res) => {
     });
   } catch (err) {
     console.error("Error updating print job:", err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+// Get all tickets
+router.get("/tickets", verifyToken("admin"), async (_req, res) => {
+  try {
+    const tickets = await Tickets.find();
+    res.status(200).json({
+      message: "Tickets fetched successfully",
+      tickets,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+router.post("/tickets/:id", verifyToken("admin"), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ticket ID" });
+    }
+    const { status } = req.body;
+
+    const ticket = await Tickets.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true },
+    );
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    res.status(200).json({
+      message: "Ticket updated successfully",
+      ticket,
+    });
+  } catch (err) {
+    console.error("Error updating ticket:", err.message);
     res.status(500).json({ message: "Server error", err });
   }
 });
