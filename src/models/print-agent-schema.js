@@ -37,6 +37,7 @@ const printAgentSchema = new mongoose.Schema({
   availability_otp_expiry: { type: Date },
   is_available: { type: Boolean, default: false },
   is_deactivated: { type: Boolean, default: true },
+  stripe_account_id: { type: String },
 });
 
 printAgentSchema.pre("save", async function (next) {
