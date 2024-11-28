@@ -6,6 +6,7 @@ const Customer = require("../../models/customer-schema.js");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
 const router = express.Router();
+const PrintAgent = require("../../models/print-agent-schema.js");
 
 router.post("/create-card", verifyToken("customer"), async (req, res) => {
   try {
@@ -206,15 +207,15 @@ router.post("/add-location", verifyToken("customer"), async (req, res) => {
       zip_code: lowerCaseZipCode,
     });
 
-    if (!existingLocation) {
-      return res.status(400).json({ message: "Location not allowed" });
-    }
+    // if (!existingLocation) {
+    //   return res.status(400).json({ message: "Location not allowed" });
+    // }
 
     customer.location = {
       ...location,
       zip_code: lowerCaseZipCode,
     };
-    customer.locationRef = existingLocation._id;
+    // customer.locationRef = existingLocation._id;
     await customer.save();
 
     res.status(200).json({
@@ -237,14 +238,17 @@ router.get(
         return res.status(400).json({ message: "User not found" });
       }
 
-      const locations = await Location.find({
-        zip_code: customer.location.zip_code,
-      }).populate("printAgents");
+      // const locations = await Location.find({
+      //   zip_code: customer.location.zip_code,
+      // }).populate("printAgents");
 
-      // Flatten the array of print agents and filter by availability
-      const availablePrintAgents = locations
-        .flatMap((location) => location.printAgents)
-        .filter((agent) => agent.is_available);
+      // // Flatten the array of print agents and filter by availability
+      // const availablePrintAgents = locations
+      //   .flatMap((location) => location.printAgents)
+      //   .filter((agent) => agent.is_available);
+
+
+      const availablePrintAgents = await PrintAgent.find({});
 
       res.status(200).json({
         message: "Locations retrieved successfully",

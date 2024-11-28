@@ -135,6 +135,7 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
     const { payment_method_id, job_id } = req.body;
     const printJob = await PrintJob.findById(job_id);
     const customer = await Customer.findById(req.user.id);
+    const printAgent = await PrintAgent.findById(printJob.print_agent_id);
 
     if (!printJob) {
       return res.status(404).json({ message: "Print job not found" });
@@ -143,6 +144,11 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
+
+    if (!printAgent) {
+      return res.status(404).json({ message: "Print agent not found" });
+    }
+
 
     let stripeCustomerId = customer.stripe_customer_id;
     if (!stripeCustomerId) {
@@ -154,21 +160,47 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
       customer.stripe_customer_id = stripeCustomerId;
       await customer.save();
     }
+    let paymentIntent;
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(printJob.total_cost * 100),
-      currency: "usd",
-      customer: stripeCustomerId,
-      payment_method: payment_method_id,
-      return_url: "http://localhost:5173",
-      setup_future_usage: "off_session",
-      confirm: true,
-      description: `Payment for Print Job: ${printJob.print_job_title}`,
-      metadata: {
-        print_job_id: printJob._id.toString(),
-        customer_id: customer._id.toString(),
-      },
-    });
+    if(printAgent.stripe_account_id){
+       paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(printJob.total_cost * 100),
+        currency: "usd",
+        customer: stripeCustomerId,
+        payment_method: payment_method_id,
+        return_url: "http://localhost:5173",
+        setup_future_usage: "off_session",
+        confirm: true,
+  
+        application_fee_amount: Math.floor(Math.round(printJob.total_cost * 100) * 0.25),
+        transfer_data: {
+          destination:printAgent.stripe_account_id,
+        },
+  
+        description: `Payment for Print Job: ${printJob.print_job_title}`,
+        metadata: {
+          print_job_id: printJob._id.toString(),
+          customer_id: customer._id.toString(),
+        },
+      });
+    }else{
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(printJob.total_cost * 100),
+        currency: "usd",
+        customer: stripeCustomerId,
+        payment_method: payment_method_id,
+        return_url: "http://localhost:5173",
+        setup_future_usage: "off_session",
+        confirm: true,
+        description: `Payment for Print Job: ${printJob.print_job_title}`,
+        metadata: {
+          print_job_id: printJob._id.toString(),
+          customer_id: customer._id.toString(),
+        },
+      });
+    }
+
+  
 
     if (paymentIntent.status === "succeeded") {
       // printJob.payment_status = "completed";
