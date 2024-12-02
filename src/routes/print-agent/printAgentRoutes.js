@@ -117,8 +117,8 @@ router.get(
 
       const links = await stripe.accountLinks.create({
         account: printAgent.stripe_account_id,
-        refresh_url: "http://localhost:3000",
-        return_url: "http://localhost:3000",
+        refresh_url: process.env.Base_URL,
+        return_url: process.env.Base_URL,
         type: "account_onboarding",
       });
 
