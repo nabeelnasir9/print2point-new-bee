@@ -40,97 +40,89 @@ router.post("/additional-info", verifyToken("printAgent"), async (req, res) => {
   }
 });
 
+
 // check if print agent has a stripe account
-router.get(
-  "/check-connect-account",
-  verifyToken("printAgent"),
-  async (req, res) => {
-    try {
-      const printAgent = await PrintAgent.findById(req.user.id);
+router.get("/check-connect-account", verifyToken("printAgent"), async (req, res) => {
 
-      if (!printAgent) {
-        return res.status(200).json({ message: "User not found" });
-      }
+  try {
+    const printAgent = await PrintAgent.findById(req.user.id);
 
-      if (!printAgent.stripe_account_id) {
-        return res
-          .status(200)
-          .json({
-            message: "No stripe account found",
-            hasStripeAccount: false,
-          });
-      }
-
-      // check if the stripe account exists
-      const account = await stripe.accounts.retrieve(
-        printAgent.stripe_account_id,
-      );
-
-      if (!account) {
-        return res
-          .status(200)
-          .json({
-            message: "No stripe account found",
-            hasStripeAccount: false,
-          });
-      }
-
-      console.log(account);
-
-      // hasStripeAccount
-
-      res
-        .status(200)
-        .json({
-          message: "Stripe account found",
-          account_id: printAgent.stripe_account_id,
-          hasStripeAccount: true,
-        });
-    } catch (error) {
-      console.error(error.message);
-      res.status(500).json({ message: "Server error", error });
+    if (!printAgent) {
+      return res.status(200).json({ message: "User not found" });
     }
-  },
-);
+
+    if (!printAgent.stripe_account_id) {
+      return res.status(200).json({ message: "No stripe account found", hasStripeAccount: false });
+    }
+
+
+    // check if the stripe account exists
+    const account = await stripe.accounts.retrieve(printAgent.stripe_account_id);
+
+
+
+    if (!account) {
+      return res.status(200).json({ message: "No stripe account found", hasStripeAccount: false });
+    }
+
+    console.log(account);
+
+
+    // Check the account's onboarding status
+    const status = {
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      requirements: account.requirements,
+      verification: account.verification,
+    };
+
+
+
+    res.status(200).json({ message: "Stripe account found", account_id: printAgent.stripe_account_id, hasStripeAccount: true, account: account, status });
+
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+
 
 // create a stripe connect account for the print agent
-router.get(
-  "/create-connect-account",
-  verifyToken("printAgent"),
-  async (req, res) => {
-    try {
-      const printAgent = await PrintAgent.findById(req.user.id);
-      if (!printAgent) {
-        return res.status(400).json({ message: "User not found" });
-      }
-
-      if (!printAgent.stripe_account_id) {
-        const account = await stripe.accounts.create({
-          type: "express",
-          email: printAgent.email,
-        });
-        printAgent.stripe_account_id = account.id;
-        await printAgent.save();
-      }
-
-      console.log({ "account id": printAgent.stripe_account_id });
-
-      const links = await stripe.accountLinks.create({
-        account: printAgent.stripe_account_id,
-        refresh_url: process.env.Base_URL,
-        return_url: process.env.Base_URL,
-        type: "account_onboarding",
-      });
-
-      res
-        .status(200)
-        .json({ message: "Account created successfully", url: links.url });
-    } catch (error) {
-      console.error(error.message);
-      res.status(500).json({ message: "Server error", error });
+router.get("/create-connect-account", verifyToken("printAgent"), async (req, res) => {
+  try {
+    const printAgent = await PrintAgent.findById(req.user.id);
+    if (!printAgent) {
+      return res.status(400).json({ message: "User not found" });
     }
-  },
-);
+
+
+    if (!printAgent.stripe_account_id) {
+      const account = await stripe.accounts.create({
+        type: "express",
+        email: printAgent.email,
+      });
+      printAgent.stripe_account_id = account.id;
+      await printAgent.save();
+    }
+
+    console.log({ "account id": printAgent.stripe_account_id });
+
+    const links = await stripe.accountLinks.create({
+      account: printAgent.stripe_account_id,
+      refresh_url: process.env.Base_URL,
+      return_url: process.env.Base_URL,
+      type: "account_onboarding",
+    });
+
+    res.status(200).json({ message: "Account created successfully", url: links.url });
+
+
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
 
 router.post("/create-card", verifyToken("printAgent"), async (req, res) => {
   try {
