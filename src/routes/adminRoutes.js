@@ -297,8 +297,10 @@ router.delete("/locations/:id", verifyToken("admin"), async (req, res) => {
       return res.status(404).json({ message: "Location not found" });
     }
 
-    await PrintAgent.updateMany({ locationRef: id }, { is_available: false });
-
+    await PrintAgent.updateMany(
+      { locationRef: id },
+      { is_available: false, is_deactivated: true },
+    );
     await location.deleteOne();
 
     res.status(200).json({

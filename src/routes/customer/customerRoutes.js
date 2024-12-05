@@ -243,8 +243,11 @@ router.get(
       // Flatten the array of print agents and filter by availability
       const availablePrintAgents = locations
         .flatMap((location) => location.printAgents)
-        .filter((agent) => agent.is_available);
-
+        .filter(
+          (agent) =>
+            agent.is_available === true && agent.is_deactivated === false,
+        );
+        
       res.status(200).json({
         message: "Locations retrieved successfully",
         availablePrintAgents,
