@@ -139,12 +139,25 @@ router.put("/customers/:id", verifyToken("admin"), async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid customer ID" });
     }
-    const customer = await Customer.findByIdAndUpdate(id, req.body, {
+
+    const updateData = Object.fromEntries(
+      Object.entries(req.body).filter(
+        ([_, value]) => value !== "" && value !== null && value !== undefined,
+      ),
+    );
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+
+    const customer = await Customer.findByIdAndUpdate(id, updateData, {
       new: true,
     });
+
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
+
     res.status(200).json({
       message: "Customer updated successfully",
       customer,
@@ -209,15 +222,30 @@ router.delete("/print-agents/:id", verifyToken("admin"), async (req, res) => {
 router.put("/print-agents/:id", verifyToken("admin"), async (req, res) => {
   try {
     const { id } = req.params;
+
+    console.log(req.body);
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid print agent ID" });
     }
-    const printAgent = await PrintAgent.findByIdAndUpdate(id, req.body, {
+
+    const updateData = Object.fromEntries(
+      Object.entries(req.body).filter(
+        ([_, value]) => value !== "" && value !== null && value !== undefined,
+      ),
+    );
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No valid fields to update" });
+    }
+    const printAgent = await PrintAgent.findByIdAndUpdate(id, updateData, {
       new: true,
     });
+
     if (!printAgent) {
       return res.status(404).json({ message: "Print agent not found" });
     }
+
     res.status(200).json({
       message: "Print agent updated successfully",
       printAgent,
@@ -227,7 +255,6 @@ router.put("/print-agents/:id", verifyToken("admin"), async (req, res) => {
     res.status(500).json({ message: "Server error", err });
   }
 });
-
 // add location for print agents verification.
 router.post("/locations", verifyToken("admin"), async (req, res) => {
   try {
