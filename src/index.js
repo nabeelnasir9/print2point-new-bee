@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
-require('dotenv').config();
+require("dotenv").config();
 const customerRoutes = require("./routes/customer/customerRoutes");
 const authRoutes = require("./routes/authRoutes");
 const printAgentRoutes = require("./routes/print-agent/printAgentRoutes.js");
