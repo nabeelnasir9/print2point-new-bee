@@ -38,6 +38,7 @@ const printAgentSchema = new mongoose.Schema({
   is_available: { type: Boolean, default: true },
   is_deactivated: { type: Boolean, default: false },
   stripe_account_id: { type: String },
+  percentage: { type: Number, default: 25 },
 });
 
 printAgentSchema.pre("save", async function (next) {
