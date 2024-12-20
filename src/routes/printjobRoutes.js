@@ -130,25 +130,384 @@ router.post(
   },
 );
 
+// router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
+//   try {
+//     const { payment_method_id, job_id } = req.body;
+//     const printJob = await PrintJob.findById(job_id);
+//     const customer = await Customer.findById(req.user.id);
+//     const printAgent = await PrintAgent.findById(printJob.print_agent_id);
+
+//     if (!printJob) {
+//       return res.status(404).json({ message: "Print job not found" });
+//     }
+
+//     if (!customer) {
+//       return res.status(404).json({ message: "Customer not found" });
+//     }
+
+//     if (!printAgent) {
+//       return res.status(404).json({ message: "Print agent not found" });
+//     }
+
+
+//     let stripeCustomerId = customer.stripe_customer_id;
+//     if (!stripeCustomerId) {
+//       const stripeCustomer = await stripe.customers.create({
+//         email: customer.email,
+//         name: customer.full_name,
+//       });
+//       stripeCustomerId = stripeCustomer.id;
+//       customer.stripe_customer_id = stripeCustomerId;
+//       await customer.save();
+//     }
+//     let paymentIntent;
+
+//     if(printAgent.stripe_account_id){
+//        paymentIntent = await stripe.paymentIntents.create({
+//         amount: Math.round(printJob.total_cost * 100),
+//         currency: "usd",
+//         customer: stripeCustomerId,
+//         payment_method: payment_method_id,
+//         return_url: "http://localhost:5173",
+//         setup_future_usage: "off_session",
+//         confirm: true,
+
+//         application_fee_amount: Math.floor(Math.round(printJob.total_cost * 100) * 0.25),
+//         transfer_data: {
+//           destination:printAgent.stripe_account_id,
+//         },
+
+//         description: `Payment for Print Job: ${printJob.print_job_title}`,
+//         metadata: {
+//           print_job_id: printJob._id.toString(),
+//           customer_id: customer._id.toString(),
+//         },
+//       });
+//     }else{
+//       paymentIntent = await stripe.paymentIntents.create({
+//         amount: Math.round(printJob.total_cost * 100),
+//         currency: "usd",
+//         customer: stripeCustomerId,
+//         payment_method: payment_method_id,
+//         return_url: "http://localhost:5173",
+//         setup_future_usage: "off_session",
+//         confirm: true,
+//         description: `Payment for Print Job: ${printJob.print_job_title}`,
+//         metadata: {
+//           print_job_id: printJob._id.toString(),
+//           customer_id: customer._id.toString(),
+//         },
+//       });
+//     }
+
+
+
+//     if (paymentIntent.status === "succeeded") {
+//       // printJob.payment_status = "completed";
+//       const confirmationCode = otpGenerator.generate(6, {
+//         digits: true,
+//         lowerCaseAlphabets: false,
+//         upperCaseAlphabets: false,
+//         specialChars: false,
+//       });
+//       printJob.confirmation_code = confirmationCode;
+//       printJob.payment_status = "completed";
+//       await printJob.save();
+
+//       const customerEmailPromise = sendCustomerConfirmationEmail(
+//         customer.email,
+//         customer.full_name,
+//         confirmationCode,
+//         printJob._id,
+//         printJob.print_job_title,
+//         transporter,
+//       );
+
+//       const printAgent = await PrintAgent.findById(printJob.print_agent_id);
+//       const printAgentEmailPromise = sendPrintAgentNotificationEmail(
+//         printAgent.email,
+//         printAgent.full_name,
+//         printJob.print_job_title,
+//         transporter,
+//       );
+
+//       await Promise.all([customerEmailPromise, printAgentEmailPromise]);
+
+//       res.status(200).json({
+//         message: "Payment successful and emails sent",
+//         confirmationCode,
+//         payment_intent: paymentIntent.id,
+//       });
+//     } else {
+//       res.status(400).json({
+//         message: "Payment not successful",
+//         status: paymentIntent.status,
+//       });
+//     }
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).json({ message: "Server error", err: err.message });
+//   }
+// });
+
+
+
+// router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
+//   try {
+//     const { job_id } = req.body; // Remove payment_method_id as it's not needed for Payment Element
+//     const printJob = await PrintJob.findById(job_id);
+//     const customer = await Customer.findById(req.user.id);
+//     const printAgent = await PrintAgent.findById(printJob.print_agent_id);
+
+//     if (!printJob) {
+//       return res.status(404).json({ message: "Print job not found" });
+//     }
+
+//     if (!customer) {
+//       return res.status(404).json({ message: "Customer not found" });
+//     }
+
+//     if (!printAgent) {
+//       return res.status(404).json({ message: "Print agent not found" });
+//     }
+
+//     let stripeCustomerId = customer.stripe_customer_id;
+//     if (!stripeCustomerId) {
+//       const stripeCustomer = await stripe.customers.create({
+//         email: customer.email,
+//         name: customer.full_name,
+//       });
+//       stripeCustomerId = stripeCustomer.id;
+//       customer.stripe_customer_id = stripeCustomerId;
+//       await customer.save();
+//     }
+
+//     // Create Payment Intent
+//     let paymentIntent;
+//     if (printAgent.stripe_account_id) {
+//       let stripePercentage = 0.25;
+//       if (printAgent.percentage) {
+//         stripePercentage = printAgent.percentage / 100;
+//       }
+
+//       paymentIntent = await stripe.paymentIntents.create({
+//         amount: Math.round(printJob.total_cost * 100),
+//         currency: "usd",
+//         customer: stripeCustomerId,
+//         setup_future_usage: "off_session",
+//         application_fee_amount: Math.floor(Math.round(printJob.total_cost * 100) * stripePercentage),
+//         transfer_data: {
+//           destination: printAgent.stripe_account_id,
+//         },
+//         description: `Payment for Print Job: ${printJob.print_job_title}`,
+//         metadata: {
+//           print_job_id: printJob._id.toString(),
+//           customer_id: customer._id.toString(),
+//         },
+//       });
+//     } else {
+//       paymentIntent = await stripe.paymentIntents.create({
+//         amount: Math.round(printJob.total_cost * 100),
+//         currency: "usd",
+//         customer: stripeCustomerId,
+//         setup_future_usage: "off_session",
+//         description: `Payment for Print Job: ${printJob.print_job_title}`,
+//         metadata: {
+//           print_job_id: printJob._id.toString(),
+//           customer_id: customer._id.toString(),
+//         },
+//       });
+//     }
+
+//     // Respond with client secret for the Payment Element to confirm payment
+//     res.status(200).json({
+//       message: "Payment intent created successfully",
+//       clientSecret: paymentIntent.client_secret,
+//     });
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).json({ message: "Server error", err: err.message });
+//   }
+// });
+
+
+
+
+
+
+
+
+// Endpoint to get saved payment methods for a customer
+router.get("/get-saved-payment-methods", verifyToken("customer"), async (req, res) => {
+  try {
+    const customer = await Customer.findById(req.user.id);
+    if (!customer || !customer.stripe_customer_id) {
+      return res.status(404).json({ message: "Customer or Stripe customer ID not found" });
+    }
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: customer.stripe_customer_id,
+      type: 'card', // Only fetch cards
+    });
+
+    res.status(200).json({
+      paymentMethods: paymentMethods.data,
+    });
+  } catch (err) {
+    console.error("Error fetching payment methods", err);
+    res.status(500).json({ message: "Failed to fetch payment methods", err: err.message });
+  }
+});
+
+
+// Endpoint to save payment method for a customer
+router.post("/save-payment-method", verifyToken("customer"), async (req, res) => {
+  try {
+    const { paymentMethodId } = req.body;
+    const customer = await Customer.findById(req.user.id);
+
+    if (!customer || !customer.stripe_customer_id) {
+      return res.status(404).json({ message: "Customer or Stripe customer ID not found" });
+    }
+
+    // Attach the payment method to the customer
+    await stripe.paymentMethods.attach(paymentMethodId, {
+      customer: customer.stripe_customer_id,
+    });
+
+    // Optionally, make this payment method the default for future payments
+    await stripe.customers.update(customer.stripe_customer_id, {
+      invoice_settings: {
+        default_payment_method: paymentMethodId,
+      },
+    });
+
+    res.status(200).json({ message: "Payment method saved successfully" });
+  } catch (err) {
+    console.error("Error saving payment method", err);
+    res.status(500).json({ message: "Failed to save payment method", err: err.message });
+  }
+});
+
+// router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
+//   try {
+//     const { job_id } = req.body;
+//     const printJob = await PrintJob.findById(job_id);
+//     const customer = await Customer.findById(req.user.id);
+//     const printAgent = await PrintAgent.findById(printJob.print_agent_id);
+
+//     if (!printJob) {
+//       return res.status(404).json({ message: "Print job not found" });
+//     }
+
+//     if (!customer) {
+//       return res.status(404).json({ message: "Customer not found" });
+//     }
+
+//     if (!printAgent) {
+//       return res.status(404).json({ message: "Print agent not found" });
+//     }
+
+//     let stripeCustomerId = customer.stripe_customer_id;
+//     if (!stripeCustomerId) {
+//       const stripeCustomer = await stripe.customers.create({
+//         email: customer.email,
+//         name: customer.full_name,
+//       });
+//       stripeCustomerId = stripeCustomer.id;
+//       customer.stripe_customer_id = stripeCustomerId;
+//       await customer.save();
+//     }
+
+//     // Retrieve the existing PaymentIntent if it exists and check its status
+//     let paymentIntent;
+//     if (customer.latest_payment_intent_id) {
+//       paymentIntent = await stripe.paymentIntents.retrieve(customer.latest_payment_intent_id);
+
+//       // If the PaymentIntent has already succeeded, skip confirming it again and just return the existing client secret
+//       if (paymentIntent.status === 'succeeded') {
+//         return res.status(200).json({
+//           message: "Payment has already been completed successfully.",
+//           clientSecret: paymentIntent.client_secret, // send the existing client secret
+//         });
+//       }
+//     }
+
+//     // If there's no existing PaymentIntent or it's not succeeded, create a new one
+//     if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+//       if (printAgent.stripe_account_id) {
+//         let stripePercentage = 0.25;
+//         if (printAgent.percentage) {
+//           stripePercentage = printAgent.percentage / 100;
+//         }
+
+//         paymentIntent = await stripe.paymentIntents.create({
+//           amount: Math.round(printJob.total_cost * 100),
+//           currency: "usd",
+//           customer: stripeCustomerId,
+//           setup_future_usage: "off_session",
+//           application_fee_amount: Math.floor(Math.round(printJob.total_cost * 100) * stripePercentage),
+//           transfer_data: {
+//             destination: printAgent.stripe_account_id,
+//           },
+//           description: `Payment for Print Job: ${printJob.print_job_title}`,
+//           metadata: {
+//             print_job_id: printJob._id.toString(),
+//             customer_id: customer._id.toString(),
+//           },
+//         });
+
+//         // Store the PaymentIntent ID for future use
+//         customer.latest_payment_intent_id = paymentIntent.id;
+//         await customer.save();
+//       } else {
+//         // Create a fallback PaymentIntent without the print agent
+//         paymentIntent = await stripe.paymentIntents.create({
+//           automatic_payment_methods: {
+//             enabled: true,
+//             allow_redirects: 'never',
+//           },
+//           amount: Math.round(printJob.total_cost * 100),
+//           currency: "usd",
+//           customer: stripeCustomerId,
+//           setup_future_usage: "off_session",
+//           description: `Payment for Print Job: ${printJob.print_job_title}`,
+//           metadata: {
+//             print_job_id: printJob._id.toString(),
+//             customer_id: customer._id.toString(),
+//           },
+//         });
+
+//         // Store the PaymentIntent ID for future use
+//         customer.latest_payment_intent_id = paymentIntent.id;
+//         await customer.save();
+//       }
+//     }
+
+//     // Respond with the client secret for the Payment Element to confirm payment
+//     res.status(200).json({
+//       message: "Payment intent created successfully",
+//       clientSecret: paymentIntent.client_secret,
+//     });
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).json({ message: "Server error", err: err.message });
+//   }
+// });
+
+
 router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
   try {
-    const { payment_method_id, job_id } = req.body;
+    const { job_id } = req.body;
+
+    // Fetch required entities
     const printJob = await PrintJob.findById(job_id);
     const customer = await Customer.findById(req.user.id);
     const printAgent = await PrintAgent.findById(printJob.print_agent_id);
 
-    if (!printJob) {
-      return res.status(404).json({ message: "Print job not found" });
-    }
-
-    if (!customer) {
-      return res.status(404).json({ message: "Customer not found" });
-    }
-
-    if (!printAgent) {
-      return res.status(404).json({ message: "Print agent not found" });
-    }
-
+    if (!printJob) return res.status(404).json({ message: "Print job not found" });
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    if (!printAgent) return res.status(404).json({ message: "Print agent not found" });
 
     let stripeCustomerId = customer.stripe_customer_id;
     if (!stripeCustomerId) {
@@ -160,95 +519,147 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
       customer.stripe_customer_id = stripeCustomerId;
       await customer.save();
     }
+
+    // Handle existing PaymentIntent logic
     let paymentIntent;
+    if (customer.latest_payment_intent_id) {
+      paymentIntent = await stripe.paymentIntents.retrieve(customer.latest_payment_intent_id);
 
-    if(printAgent.stripe_account_id){
-       paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(printJob.total_cost * 100),
-        currency: "usd",
-        customer: stripeCustomerId,
-        payment_method: payment_method_id,
-        return_url: "http://localhost:5173",
-        setup_future_usage: "off_session",
-        confirm: true,
-  
-        application_fee_amount: Math.floor(Math.round(printJob.total_cost * 100) * 0.25),
-        transfer_data: {
-          destination:printAgent.stripe_account_id,
-        },
-  
-        description: `Payment for Print Job: ${printJob.print_job_title}`,
-        metadata: {
-          print_job_id: printJob._id.toString(),
-          customer_id: customer._id.toString(),
-        },
-      });
-    }else{
+      if (paymentIntent.status === 'succeeded') {
+        return res.status(200).json({
+          message: "Payment already completed",
+          clientSecret: paymentIntent.client_secret,
+        });
+      }
+    }
+
+    // Calculate the final amount with discount if a coupon was applied
+    const totalCost = Math.round(printJob.total_cost * 100); // Convert to cents for Stripe
+    const perAmount = 25;
+    if (printAgent.percentage) {
+      perAmount = printAgent.percentage;
+    }
+    if (!paymentIntent || paymentIntent.status !== 'succeeded') {
       paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(printJob.total_cost * 100),
-        currency: "usd",
+        amount: totalCost,
+        currency: "eur",
         customer: stripeCustomerId,
-        payment_method: payment_method_id,
-        return_url: "http://localhost:5173",
+        payment_method_types: ["card", "ideal"],
         setup_future_usage: "off_session",
-        confirm: true,
+        application_fee_amount: printAgent.stripe_account_id
+          ? Math.floor(totalCost * (perAmount / 100))
+          : undefined, // Optional for agents with Stripe account
+        transfer_data: printAgent.stripe_account_id
+          ? { destination: printAgent.stripe_account_id }
+          : undefined,
         description: `Payment for Print Job: ${printJob.print_job_title}`,
         metadata: {
           print_job_id: printJob._id.toString(),
           customer_id: customer._id.toString(),
         },
       });
+
+      customer.latest_payment_intent_id = paymentIntent.id;
+      await customer.save();
     }
 
-  
-
-    if (paymentIntent.status === "succeeded") {
-      // printJob.payment_status = "completed";
-      const confirmationCode = otpGenerator.generate(6, {
-        digits: true,
-        lowerCaseAlphabets: false,
-        upperCaseAlphabets: false,
-        specialChars: false,
-      });
-      printJob.confirmation_code = confirmationCode;
-      printJob.payment_status = "completed";
-      await printJob.save();
-
-      const customerEmailPromise = sendCustomerConfirmationEmail(
-        customer.email,
-        customer.full_name,
-        confirmationCode,
-        printJob._id,
-        printJob.print_job_title,
-        transporter,
-      );
-
-      const printAgent = await PrintAgent.findById(printJob.print_agent_id);
-      const printAgentEmailPromise = sendPrintAgentNotificationEmail(
-        printAgent.email,
-        printAgent.full_name,
-        printJob.print_job_title,
-        transporter,
-      );
-
-      await Promise.all([customerEmailPromise, printAgentEmailPromise]);
-
-      res.status(200).json({
-        message: "Payment successful and emails sent",
-        confirmationCode,
-        payment_intent: paymentIntent.id,
-      });
-    } else {
-      res.status(400).json({
-        message: "Payment not successful",
-        status: paymentIntent.status,
-      });
-    }
+    res.status(200).json({
+      message: "Payment intent created successfully",
+      clientSecret: paymentIntent.client_secret,
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: "Server error", err: err.message });
   }
 });
+
+
+router.post("/apply-coupon", verifyToken("customer"), async (req, res) => {
+  try {
+    const { job_id, coupon_code } = req.body;
+
+    // Find the PrintJob and validate existence
+    const printJob = await PrintJob.findById(job_id);
+    if (!printJob) return res.status(404).json({ message: "Print job not found" });
+
+    // Validate the coupon
+    const coupon = await stripe.coupons.retrieve(coupon_code);
+    if (!coupon || !coupon.valid) {
+      return res.status(400).json({ message: "Invalid or expired coupon code" });
+    }
+
+    // Calculate discount and new total
+    const discountAmount = (printJob.total_cost * coupon.percent_off) / 100;
+    const discountedTotal = printJob.total_cost - discountAmount;
+
+    printJob.total_cost = discountedTotal;
+    await printJob.save();
+
+    // Update the total only in-memory to avoid overwriting DB unnecessarily
+    res.status(200).json({
+      message: "Coupon applied successfully",
+      newTotalCost: discountedTotal,
+      discountAmount,
+    });
+  } catch (err) {
+    console.error("Error applying coupon:", err);
+    res.status(500).json({ message: "Failed to apply coupon", err: err.message });
+  }
+});
+
+
+
+
+
+// Endpoint to check the status of the PaymentIntent
+router.get("/check-payment-intent-status", verifyToken("customer"), async (req, res) => {
+  try {
+    const { clientSecret } = req.query;
+
+    if (!clientSecret) {
+      return res.status(400).json({ message: "clientSecret is required" });
+    }
+
+    // Retrieve the PaymentIntent status using the clientSecret
+    const paymentIntent = await stripe.paymentIntents.retrieve(clientSecret);
+
+    res.status(200).json({
+      status: paymentIntent.status,
+    });
+  } catch (err) {
+    console.error("Error checking PaymentIntent status", err);
+    res.status(500).json({ message: "Failed to check PaymentIntent status", err: err.message });
+  }
+});
+
+
+
+router.get("/customer-payment-methods", verifyToken("customer"), async (req, res) => {
+  try {
+    const customer = await Customer.findById(req.user.id);
+
+    if (!customer || !customer.stripe_customer_id) {
+      return res.status(404).json({ message: "Customer or Stripe customer ID not found" });
+    }
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: customer.stripe_customer_id,
+      type: 'card', // Only fetch card payment methods
+    });
+
+    // Return the list of saved payment methods
+    res.status(200).json({
+      paymentMethods: paymentMethods.data,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err: err.message });
+  }
+});
+
+
+
+
 
 router.post(
   "/complete-print-job",
