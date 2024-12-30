@@ -15,6 +15,7 @@ const Customer = require("../models/customer-schema.js");
 const router = express.Router();
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; // Webhook secret for verification
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -686,5 +687,83 @@ router.post(
     }
   },
 );
+
+
+
+// Webhook endpoint
+router.post("/stripe-webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  let event;
+
+  try {
+    // Verify the webhook signature
+    const signature = req.headers["stripe-signature"];
+    event = stripe.webhooks.constructEvent(req.body, signature, endpointSecret);
+  } catch (err) {
+    console.error(`Webhook signature verification failed: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case "payment_intent.succeeded": {
+      const paymentIntent = event.data.object;
+
+      try {
+        // Retrieve PrintJob and Customer details
+        const printJobId = paymentIntent.metadata.print_job_id;
+        const customerId = paymentIntent.metadata.customer_id;
+
+        const printJob = await PrintJob.findById(printJobId);
+        if (!printJob) {
+          throw new Error("PrintJob not found.");
+        }
+
+        // Generate confirmation code and update payment status
+        const confirmationCode = otpGenerator.generate(6, {
+          digits: true,
+          lowerCaseAlphabets: false,
+          upperCaseAlphabets: false,
+          specialChars: false,
+        });
+        printJob.confirmation_code = confirmationCode;
+        printJob.payment_status = "completed";
+        await printJob.save();
+
+        // Send email notifications
+        const customerEmailPromise = sendCustomerConfirmationEmail(
+          paymentIntent.receipt_email,
+          paymentIntent.metadata.customer_name,
+          confirmationCode,
+          printJob._id,
+          printJob.print_job_title,
+          transporter
+        );
+
+        const printAgent = await PrintAgent.findById(printJob.print_agent_id);
+        const printAgentEmailPromise = sendPrintAgentNotificationEmail(
+          printAgent.email,
+          printAgent.full_name,
+          printJob.print_job_title,
+          transporter
+        );
+
+        await Promise.all([customerEmailPromise, printAgentEmailPromise]);
+
+        console.log("Payment successful, emails sent.");
+      } catch (err) {
+        console.error("Error processing payment success:", err.message);
+      }
+
+      break;
+    }
+
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  // Acknowledge receipt of the event
+  res.status(200).json({ received: true });
+});
+
 
 module.exports = router;
