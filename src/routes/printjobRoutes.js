@@ -536,7 +536,7 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
 
     // Calculate the final amount with discount if a coupon was applied
     const totalCost = Math.round(printJob.total_cost * 100); // Convert to cents for Stripe
-    const perAmount = 25;
+    let  perAmount = 25;
     if (printAgent.percentage) {
       perAmount = printAgent.percentage;
     }
