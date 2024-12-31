@@ -12,15 +12,7 @@ const printJobRoutes = require("./routes/printjobRoutes.js");
 const app = express();
 const port = process.env.PORT || 5000;
 app.use(morgan("dev"));
-// app.use(express.json());
-// Apply `express.json()` to all routes except `/api/printjob/stripe-webhook`
-app.use(bodyParser.json({
-  verify: function(req,res,buf) {
-      var url = req.originalUrl;
-      if (url.endsWith('stripe-webhooks')) {
-          req.rawBody = buf.toString()
-      }
-  }}));
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
