@@ -2,6 +2,7 @@ const express = require("express");
 const Location = require("../../models/locations-schema.js");
 const verifyToken = require("../../middleware/verifyToken.js");
 const Tickets = require("../../models/tickets-schema.js");
+const nodemailer = require("nodemailer");
 const Customer = require("../../models/customer-schema.js");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
@@ -247,7 +248,7 @@ router.get(
           (agent) =>
             agent.is_available === true && agent.is_deactivated === false,
         );
-        
+
       res.status(200).json({
         message: "Locations retrieved successfully",
         availablePrintAgents,
@@ -291,6 +292,37 @@ router.post("/create-ticket", verifyToken("customer"), async (req, res) => {
     });
 
     await newTicket.save();
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "print2pointt@gmail.com",
+        pass: "tebd siwh pwfg xifk",
+      },
+    });
+    transporter.sendMail(
+      {
+        from: process.env.EMAIL,
+        to: process.env.EMAIL,
+        subject: "Ticket created",
+        html: `
+            <div>
+              <p>New ticket created</p>
+            <p>Full name: ${full_name}</p>
+            <p>Email: ${email}</p>
+            <p>Order number: ${order_number}</p>
+            <p>Message: ${message}</p>
+            </div>
+`,
+      },
+      (error) => {
+        if (error) {
+          return res.status(500).json({ message: "Error sending email" });
+        }
+      },
+    );
 
     res
       .status(201)
