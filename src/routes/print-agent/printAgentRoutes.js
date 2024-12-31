@@ -10,6 +10,7 @@ const validateUpdateCard = require("../../middleware/validateCard.js");
 const PrintJob = require("../../models/print-job-schema.js");
 const router = express.Router();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 router.post("/additional-info", verifyToken("printAgent"), async (req, res) => {
   try {
     const { personal_info, location, personal_phone_number, card } = req.body;
