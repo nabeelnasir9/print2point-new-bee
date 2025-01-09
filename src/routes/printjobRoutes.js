@@ -545,7 +545,7 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
         amount: totalCost,
         currency: "eur",
         customer: stripeCustomerId,
-        payment_method_types: ["card", "ideal"],
+        payment_method_types: ["card", "ideal","apple_pay"],
         setup_future_usage: "off_session",
         application_fee_amount: printAgent.stripe_account_id
           ? Math.floor(totalCost * (perAmount / 100))
