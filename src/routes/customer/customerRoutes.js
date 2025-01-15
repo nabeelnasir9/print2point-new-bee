@@ -237,9 +237,7 @@ router.get(
         return res.status(400).json({ message: "User not found" });
       }
 
-      const locations = await Location.find({
-        zip_code: customer.location.zip_code,
-      }).populate("printAgents");
+      const locations = await Location.find({}).populate("printAgents");
 
       // Flatten the array of print agents and filter by availability
       const availablePrintAgents = locations
