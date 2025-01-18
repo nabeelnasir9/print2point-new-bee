@@ -543,9 +543,9 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
     if (!paymentIntent || paymentIntent.status !== 'succeeded') {
       paymentIntent = await stripe.paymentIntents.create({
         amount: totalCost,
-        currency: "eur",
+        currency: "usd",
         customer: stripeCustomerId,
-        payment_method_types: ["card", "ideal"],
+        payment_method_types: ["card"],
         setup_future_usage: "off_session",
         application_fee_amount: printAgent.stripe_account_id
           ? Math.floor(totalCost * (perAmount / 100))
