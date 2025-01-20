@@ -768,17 +768,5 @@ router.post("/stripe-webhook", express.raw({ type: 'application/json' }), async 
   res.status(200).json({ received: true });
 });
 
-// Ensure this middleware is placed before your webhook route in your application
-app.use(
-  express.json({
-    limit: "10mb", // Adjust based on your needs
-    verify: (req, res, buf) => {
-      if (req.originalUrl === "/api/printjob/stripe-webhook") {
-        req.rawBody = buf.toString();
-      }
-    },
-  })
-);
-
 
 module.exports = router;
