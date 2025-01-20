@@ -688,7 +688,6 @@ router.post(
   },
 );
 
-
 // Use raw body parser for Stripe webhook
 router.post("/stripe-webhook", express.raw({ type: 'application/json' }), async (req, res) => {
   let event;
