@@ -11,7 +11,7 @@ const printJobRoutes = require("./routes/printjobRoutes.js");
 
 const app = express();
 const port = process.env.PORT || 5000;
-app.use(morgan("dev"));
+app.use(morgan("common"));
 // app.use(express.json());
 // Apply `express.json()` to all routes except `/api/printjob/stripe-webhook`
 app.use(
