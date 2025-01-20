@@ -24,16 +24,6 @@ app.use(morgan("common"));
 //   })
 // );
 
-app.use(
-  express.json({
-    limit: "10mb", // Adjust based on your needs
-    verify: (req, res, buf) => {
-      if (req.originalUrl === "/api/printjob/stripe-webhook") {
-        req.rawBody = buf.toString();
-      }
-    },
-  })
-);
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 

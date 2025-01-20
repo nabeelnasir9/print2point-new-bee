@@ -689,15 +689,14 @@ router.post(
 );
 
 
-
-// Webhook endpoint
-router.post("/stripe-webhook", express.raw(), async (req, res) => {
+// Use raw body parser for Stripe webhook
+router.post("/stripe-webhook", express.raw({ type: 'application/json' }), async (req, res) => {
   let event;
 
   try {
     // Verify the webhook signature
-    const signature = req.headers["stripe-signature"];
-    event = stripe.webhooks.constructEvent(req.body, signature, endpointSecret);
+    const signature = req.headers['stripe-signature'];
+    event = stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     console.error(`Webhook signature verification failed: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -719,12 +718,13 @@ router.post("/stripe-webhook", express.raw(), async (req, res) => {
         }
 
         // Generate confirmation code and update payment status
-        const confirmationCode = otpGenerator.generate(6, {
+        const confirmationCode = otpGenerator.generate(6, { 
           digits: true,
           lowerCaseAlphabets: false,
           upperCaseAlphabets: false,
-          specialChars: false,
+          specialChars: false
         });
+
         printJob.confirmation_code = confirmationCode;
         printJob.payment_status = "completed";
         await printJob.save();
@@ -734,12 +734,16 @@ router.post("/stripe-webhook", express.raw(), async (req, res) => {
           paymentIntent.receipt_email,
           paymentIntent.metadata.customer_name,
           confirmationCode,
-          printJob._id,
+          printJob._id.toString(), // Convert ObjectId to string
           printJob.print_job_title,
-          transporter
+          transporter // Assuming transporter is defined globally or passed here
         );
 
         const printAgent = await PrintAgent.findById(printJob.print_agent_id);
+        if (!printAgent) {
+          throw new Error("PrintAgent not found.");
+        }
+
         const printAgentEmailPromise = sendPrintAgentNotificationEmail(
           printAgent.email,
           printAgent.full_name,
@@ -764,6 +768,18 @@ router.post("/stripe-webhook", express.raw(), async (req, res) => {
   // Acknowledge receipt of the event
   res.status(200).json({ received: true });
 });
+
+// Ensure this middleware is placed before your webhook route in your application
+app.use(
+  express.json({
+    limit: "10mb", // Adjust based on your needs
+    verify: (req, res, buf) => {
+      if (req.originalUrl === "/api/printjob/stripe-webhook") {
+        req.rawBody = buf.toString();
+      }
+    },
+  })
+);
 
 
 module.exports = router;
