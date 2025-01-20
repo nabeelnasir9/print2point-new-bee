@@ -14,11 +14,22 @@ const port = process.env.PORT || 5000;
 app.use(morgan("common"));
 // app.use(express.json());
 // Apply `express.json()` to all routes except `/api/printjob/stripe-webhook`
+// app.use(
+//   express.json({
+//     verify: (req, res, buf) => {
+//       if (req.originalUrl === "/api/printjob/stripe-webhook") {
+//         req.rawBody = buf.toString(); // Store raw body as a string
+//       }
+//     },
+//   })
+// );
+
 app.use(
   express.json({
+    limit: "10mb", // Adjust based on your needs
     verify: (req, res, buf) => {
       if (req.originalUrl === "/api/printjob/stripe-webhook") {
-        req.rawBody = buf.toString(); // Store raw body as a string
+        req.rawBody = buf.toString();
       }
     },
   })
