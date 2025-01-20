@@ -691,7 +691,7 @@ router.post(
 
 
 // Webhook endpoint
-router.post("/stripe-webhook", express.raw({ type: "application/json" }), async (req, res) => {
+router.post("/stripe-webhook", express.raw(), async (req, res) => {
   let event;
 
   try {
