@@ -4,18 +4,11 @@ const PrintAgent = require("../models/print-agent-schema.js");
 const verifyToken = require("../middleware/verifyToken.js");
 const calculateCost = require("../utils/calculateCost.js");
 const uploadToCloudinary = require("../utils/uploadCloudinary.js");
-const {
-  sendCustomerConfirmationEmail,
-  sendPrintAgentNotificationEmail,
-} = require("../utils/mailOrder.js");
-const transporter = require("../utils/transporter.js");
 const PrintJob = require("../models/print-job-schema.js");
-const otpGenerator = require("otp-generator");
 const Customer = require("../models/customer-schema.js");
 const router = express.Router();
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET; // Webhook secret for verification
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -150,7 +143,6 @@ router.post(
 //       return res.status(404).json({ message: "Print agent not found" });
 //     }
 
-
 //     let stripeCustomerId = customer.stripe_customer_id;
 //     if (!stripeCustomerId) {
 //       const stripeCustomer = await stripe.customers.create({
@@ -201,8 +193,6 @@ router.post(
 //       });
 //     }
 
-
-
 //     if (paymentIntent.status === "succeeded") {
 //       // printJob.payment_status = "completed";
 //       const confirmationCode = otpGenerator.generate(6, {
@@ -250,8 +240,6 @@ router.post(
 //     res.status(500).json({ message: "Server error", err: err.message });
 //   }
 // });
-
-
 
 // router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
 //   try {
@@ -331,64 +319,72 @@ router.post(
 //   }
 // });
 
-
-
-
-
-
-
-
 // Endpoint to get saved payment methods for a customer
-router.get("/get-saved-payment-methods", verifyToken("customer"), async (req, res) => {
-  try {
-    const customer = await Customer.findById(req.user.id);
-    if (!customer || !customer.stripe_customer_id) {
-      return res.status(404).json({ message: "Customer or Stripe customer ID not found" });
+router.get(
+  "/get-saved-payment-methods",
+  verifyToken("customer"),
+  async (req, res) => {
+    try {
+      const customer = await Customer.findById(req.user.id);
+      if (!customer || !customer.stripe_customer_id) {
+        return res
+          .status(404)
+          .json({ message: "Customer or Stripe customer ID not found" });
+      }
+
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: customer.stripe_customer_id,
+        type: "card", // Only fetch cards
+      });
+
+      res.status(200).json({
+        paymentMethods: paymentMethods.data,
+      });
+    } catch (err) {
+      console.error("Error fetching payment methods", err);
+      res
+        .status(500)
+        .json({ message: "Failed to fetch payment methods", err: err.message });
     }
-
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: customer.stripe_customer_id,
-      type: 'card', // Only fetch cards
-    });
-
-    res.status(200).json({
-      paymentMethods: paymentMethods.data,
-    });
-  } catch (err) {
-    console.error("Error fetching payment methods", err);
-    res.status(500).json({ message: "Failed to fetch payment methods", err: err.message });
-  }
-});
-
+  },
+);
 
 // Endpoint to save payment method for a customer
-router.post("/save-payment-method", verifyToken("customer"), async (req, res) => {
-  try {
-    const { paymentMethodId } = req.body;
-    const customer = await Customer.findById(req.user.id);
+router.post(
+  "/save-payment-method",
+  verifyToken("customer"),
+  async (req, res) => {
+    try {
+      const { paymentMethodId } = req.body;
+      const customer = await Customer.findById(req.user.id);
 
-    if (!customer || !customer.stripe_customer_id) {
-      return res.status(404).json({ message: "Customer or Stripe customer ID not found" });
+      if (!customer || !customer.stripe_customer_id) {
+        return res
+          .status(404)
+          .json({ message: "Customer or Stripe customer ID not found" });
+      }
+
+      // Attach the payment method to the customer
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: customer.stripe_customer_id,
+      });
+
+      // Optionally, make this payment method the default for future payments
+      await stripe.customers.update(customer.stripe_customer_id, {
+        invoice_settings: {
+          default_payment_method: paymentMethodId,
+        },
+      });
+
+      res.status(200).json({ message: "Payment method saved successfully" });
+    } catch (err) {
+      console.error("Error saving payment method", err);
+      res
+        .status(500)
+        .json({ message: "Failed to save payment method", err: err.message });
     }
-
-    // Attach the payment method to the customer
-    await stripe.paymentMethods.attach(paymentMethodId, {
-      customer: customer.stripe_customer_id,
-    });
-
-    // Optionally, make this payment method the default for future payments
-    await stripe.customers.update(customer.stripe_customer_id, {
-      invoice_settings: {
-        default_payment_method: paymentMethodId,
-      },
-    });
-
-    res.status(200).json({ message: "Payment method saved successfully" });
-  } catch (err) {
-    console.error("Error saving payment method", err);
-    res.status(500).json({ message: "Failed to save payment method", err: err.message });
-  }
-});
+  },
+);
 
 // router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
 //   try {
@@ -496,7 +492,6 @@ router.post("/save-payment-method", verifyToken("customer"), async (req, res) =>
 //   }
 // });
 
-
 router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
   try {
     const { job_id } = req.body;
@@ -506,9 +501,12 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
     const customer = await Customer.findById(req.user.id);
     const printAgent = await PrintAgent.findById(printJob.print_agent_id);
 
-    if (!printJob) return res.status(404).json({ message: "Print job not found" });
-    if (!customer) return res.status(404).json({ message: "Customer not found" });
-    if (!printAgent) return res.status(404).json({ message: "Print agent not found" });
+    if (!printJob)
+      return res.status(404).json({ message: "Print job not found" });
+    if (!customer)
+      return res.status(404).json({ message: "Customer not found" });
+    if (!printAgent)
+      return res.status(404).json({ message: "Print agent not found" });
 
     let stripeCustomerId = customer.stripe_customer_id;
     if (!stripeCustomerId) {
@@ -524,9 +522,11 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
     // Handle existing PaymentIntent logic
     let paymentIntent;
     if (customer.latest_payment_intent_id) {
-      paymentIntent = await stripe.paymentIntents.retrieve(customer.latest_payment_intent_id);
+      paymentIntent = await stripe.paymentIntents.retrieve(
+        customer.latest_payment_intent_id,
+      );
 
-      if (paymentIntent.status === 'succeeded') {
+      if (paymentIntent.status === "succeeded") {
         return res.status(200).json({
           message: "Payment already completed",
           clientSecret: paymentIntent.client_secret,
@@ -540,7 +540,7 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
     if (printAgent.percentage) {
       perAmount = printAgent.percentage;
     }
-    if (!paymentIntent || paymentIntent.status !== 'succeeded') {
+    if (!paymentIntent || paymentIntent.status !== "succeeded") {
       paymentIntent = await stripe.paymentIntents.create({
         amount: totalCost,
         currency: "usd",
@@ -574,19 +574,21 @@ router.post("/initiate-payment", verifyToken("customer"), async (req, res) => {
   }
 });
 
-
 router.post("/apply-coupon", verifyToken("customer"), async (req, res) => {
   try {
     const { job_id, coupon_code } = req.body;
 
     // Find the PrintJob and validate existence
     const printJob = await PrintJob.findById(job_id);
-    if (!printJob) return res.status(404).json({ message: "Print job not found" });
+    if (!printJob)
+      return res.status(404).json({ message: "Print job not found" });
 
     // Validate the coupon
     const coupon = await stripe.coupons.retrieve(coupon_code);
     if (!coupon || !coupon.valid) {
-      return res.status(400).json({ message: "Invalid or expired coupon code" });
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired coupon code" });
     }
 
     // Calculate discount and new total
@@ -604,63 +606,70 @@ router.post("/apply-coupon", verifyToken("customer"), async (req, res) => {
     });
   } catch (err) {
     console.error("Error applying coupon:", err);
-    res.status(500).json({ message: "Failed to apply coupon", err: err.message });
+    res
+      .status(500)
+      .json({ message: "Failed to apply coupon", err: err.message });
   }
 });
-
-
-
-
 
 // Endpoint to check the status of the PaymentIntent
-router.get("/check-payment-intent-status", verifyToken("customer"), async (req, res) => {
-  try {
-    const { clientSecret } = req.query;
+router.get(
+  "/check-payment-intent-status",
+  verifyToken("customer"),
+  async (req, res) => {
+    try {
+      const { clientSecret } = req.query;
 
-    if (!clientSecret) {
-      return res.status(400).json({ message: "clientSecret is required" });
+      if (!clientSecret) {
+        return res.status(400).json({ message: "clientSecret is required" });
+      }
+
+      // Retrieve the PaymentIntent status using the clientSecret
+      const paymentIntent = await stripe.paymentIntents.retrieve(clientSecret);
+
+      res.status(200).json({
+        status: paymentIntent.status,
+      });
+    } catch (err) {
+      console.error("Error checking PaymentIntent status", err);
+      res
+        .status(500)
+        .json({
+          message: "Failed to check PaymentIntent status",
+          err: err.message,
+        });
     }
+  },
+);
 
-    // Retrieve the PaymentIntent status using the clientSecret
-    const paymentIntent = await stripe.paymentIntents.retrieve(clientSecret);
+router.get(
+  "/customer-payment-methods",
+  verifyToken("customer"),
+  async (req, res) => {
+    try {
+      const customer = await Customer.findById(req.user.id);
 
-    res.status(200).json({
-      status: paymentIntent.status,
-    });
-  } catch (err) {
-    console.error("Error checking PaymentIntent status", err);
-    res.status(500).json({ message: "Failed to check PaymentIntent status", err: err.message });
-  }
-});
+      if (!customer || !customer.stripe_customer_id) {
+        return res
+          .status(404)
+          .json({ message: "Customer or Stripe customer ID not found" });
+      }
 
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: customer.stripe_customer_id,
+        type: "card", // Only fetch card payment methods
+      });
 
-
-router.get("/customer-payment-methods", verifyToken("customer"), async (req, res) => {
-  try {
-    const customer = await Customer.findById(req.user.id);
-
-    if (!customer || !customer.stripe_customer_id) {
-      return res.status(404).json({ message: "Customer or Stripe customer ID not found" });
+      // Return the list of saved payment methods
+      res.status(200).json({
+        paymentMethods: paymentMethods.data,
+      });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ message: "Server error", err: err.message });
     }
-
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: customer.stripe_customer_id,
-      type: 'card', // Only fetch card payment methods
-    });
-
-    // Return the list of saved payment methods
-    res.status(200).json({
-      paymentMethods: paymentMethods.data,
-    });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: "Server error", err: err.message });
-  }
-});
-
-
-
-
+  },
+);
 
 router.post(
   "/complete-print-job",
@@ -687,6 +696,5 @@ router.post(
     }
   },
 );
-
 
 module.exports = router;

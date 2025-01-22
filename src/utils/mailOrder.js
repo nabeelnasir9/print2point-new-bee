@@ -2,6 +2,8 @@ const sendCustomerConfirmationEmail = async (
   customerEmail,
   customerFullName,
   confirmationCode,
+  printAgentEmail,
+  printAgentBusinessName,
   PrintJobId,
   printJobTitle,
   transporter,
@@ -124,6 +126,30 @@ const sendCustomerConfirmationEmail = async (
                 letter-spacing: 0.56px;
               "
             >
+              The agent's email is
+              <span style="font-weight: 600">${printAgentEmail}</span>.
+              <br />
+            </p>
+            <p
+              style="
+                margin: 0;
+                margin-top: 17px;
+                font-weight: 500;
+                letter-spacing: 0.56px;
+              "
+            >
+              Business Name for your agent is
+              <span style="font-weight: 600">${printAgentBusinessName}</span>.
+              <br />
+            </p>
+            <p
+              style="
+                margin: 0;
+                margin-top: 17px;
+                font-weight: 500;
+                letter-spacing: 0.56px;
+              "
+            >
               Title of your job is
               <span style="font-weight: 600">${printJobTitle}</span>.
               <br />
@@ -200,7 +226,7 @@ const sendCustomerConfirmationEmail = async (
     </div>
   </body>
 </html>
-`,
+    `,
   };
 
   return transporter.sendMail(mailOptions);
