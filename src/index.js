@@ -49,7 +49,12 @@ app.post(
         try {
           // Retrieve PrintJob and Customer details
           const printJobId = paymentIntent.metadata.print_job_id;
+          const customerId = paymentIntent.metadata.customer_id;
 
+          const customer = await PrintJob.findById(customerId);
+          if (!customer) {
+            throw new Error("Customer not found.");
+          }
           const printJob = await PrintJob.findById(printJobId);
           if (!printJob) {
             throw new Error("PrintJob not found.");
@@ -75,7 +80,7 @@ app.post(
           // Send email notifications
           const customerEmailPromise = sendCustomerConfirmationEmail(
             paymentIntent.receipt_email,
-            paymentIntent.metadata.customer_name,
+            customer.full_name,
             confirmationCode,
             printAgent.email,
             printAgent.business_name,
