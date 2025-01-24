@@ -10,6 +10,7 @@ const adminRoutes = require("./routes/adminRoutes.js");
 const printJobRoutes = require("./routes/printjobRoutes.js");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const PrintAgent = require("./models/print-agent-schema.js");
+const Customer = require("./models/customer-schema.js");
 const {
   sendCustomerConfirmationEmail,
   sendPrintAgentNotificationEmail,
@@ -47,11 +48,10 @@ app.post(
         const paymentIntent = event.data.object;
 
         try {
-          // Retrieve PrintJob and Customer details
           const printJobId = paymentIntent.metadata.print_job_id;
           const customerId = paymentIntent.metadata.customer_id;
 
-          const customer = await PrintJob.findById(customerId);
+          const customer = await Customer.findById(customerId);
           if (!customer) {
             throw new Error("Customer not found.");
           }
