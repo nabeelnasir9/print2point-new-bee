@@ -1,6 +1,7 @@
 const express = require("express");
 const Location = require("../../models/locations-schema.js");
 const verifyToken = require("../../middleware/verifyToken.js");
+const PrintAgent = require("../../models/print-agent-schema.js");
 const Tickets = require("../../models/tickets-schema.js");
 const nodemailer = require("nodemailer");
 const Customer = require("../../models/customer-schema.js");
@@ -236,16 +237,21 @@ router.get(
       if (!customer) {
         return res.status(400).json({ message: "User not found" });
       }
+      const Agents = await PrintAgent.find({});
+      const availablePrintAgents = Agents.filter(
+        (agent) =>
+          agent.is_available === true && agent.is_deactivated === false,
+      );
 
-      const locations = await Location.find({}).populate("printAgents");
-
-      // Flatten the array of print agents and filter by availability
-      const availablePrintAgents = locations
-        .flatMap((location) => location.printAgents)
-        .filter(
-          (agent) =>
-            agent.is_available === true && agent.is_deactivated === false,
-        );
+      // const locations = await Location.find({}).populate("printAgents");
+      //
+      // // Flatten the array of print agents and filter by availability
+      // const availablePrintAgents = locations
+      //   .flatMap((location) => location.printAgents)
+      //   .filter(
+      //     (agent) =>
+      //       agent.is_available === true && agent.is_deactivated === false,
+      //   );
 
       res.status(200).json({
         message: "Locations retrieved successfully",

@@ -45,13 +45,13 @@ router.post("/signup", async (req, res) => {
     const lowerCaseZipCode = zip_code.toLowerCase();
 
     // Check if location exists in the Location schema
-    const existingLocation = await Location.findOne({
-      zip_code: lowerCaseZipCode,
-    });
-
-    if (!existingLocation) {
-      return res.status(400).json({ message: "Location not supported" });
-    }
+    // const existingLocation = await Location.findOne({
+    //   zip_code: lowerCaseZipCode,
+    // });
+    //
+    // if (!existingLocation) {
+    //   return res.status(400).json({ message: "Location not supported" });
+    // }
 
     const otp = otpGenerator.generate(6, {
       digits: true,
@@ -72,7 +72,7 @@ router.post("/signup", async (req, res) => {
       location: {
         zip_code: lowerCaseZipCode,
       },
-      locationRef: existingLocation._id, // Reference the location in the schema
+      // locationRef: existingLocation._id, // Reference the location in the schema
     });
 
     // Save new PrintAgent
