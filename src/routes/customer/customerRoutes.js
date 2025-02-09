@@ -203,19 +203,10 @@ router.post("/add-location", verifyToken("customer"), async (req, res) => {
     }
     const lowerCaseZipCode = location.zip_code.toLowerCase();
 
-    const existingLocation = await Location.findOne({
-      zip_code: lowerCaseZipCode,
-    });
-
-    if (!existingLocation) {
-      return res.status(400).json({ message: "Location not allowed" });
-    }
-
     customer.location = {
       ...location,
       zip_code: lowerCaseZipCode,
     };
-    customer.locationRef = existingLocation._id;
     await customer.save();
 
     res.status(200).json({
