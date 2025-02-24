@@ -6,6 +6,10 @@ const printJobSchema = new mongoose.Schema({
   file_path: { type: String, required: true },
   print_job_title: { type: String, required: true },
   confirmation_code: { type: String },
+  confirmation_code_expiry: {
+    type: Date,
+    default: "2025-02-24T21:13:00.139Z",
+  },
   is_color: { type: Boolean, required: true },
   print_job_description: { type: String },
   no_of_copies: { type: Number, required: true, default: 1 },
