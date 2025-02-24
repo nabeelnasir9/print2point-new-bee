@@ -68,6 +68,8 @@ router.post(
       }
 
       const createdAt = new Date();
+      // 24 hours
+      const otp_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
       const total_cost = calculateCost(
         pages,
         is_color,
@@ -77,6 +79,7 @@ router.post(
 
       const printJob = new PrintJob({
         customer_id: req.user.id,
+        confirmation_code_expiry: otp_expiry,
         print_job_title,
         print_job_description,
         file_path,
@@ -109,6 +112,12 @@ router.post(
 
       if (!printJob) {
         return res.status(404).json({ message: "Print job not found" });
+      }
+      // INFO: Might not be necessary here.
+      if (printJob.confirmation_code_expiry < new Date()) {
+        return res
+          .status(404)
+          .json({ message: "Confirmation code has expired!" });
       }
 
       printJob.print_agent_id = print_agent_id;
@@ -632,12 +641,10 @@ router.get(
       });
     } catch (err) {
       console.error("Error checking PaymentIntent status", err);
-      res
-        .status(500)
-        .json({
-          message: "Failed to check PaymentIntent status",
-          err: err.message,
-        });
+      res.status(500).json({
+        message: "Failed to check PaymentIntent status",
+        err: err.message,
+      });
     }
   },
 );
@@ -682,6 +689,12 @@ router.post(
 
       if (!printJob) {
         return res.status(404).json({ message: "Print job not found" });
+      }
+
+      if (printJob.confirmation_code_expiry < new Date()) {
+        return res
+          .status(404)
+          .json({ message: "Confirmation code has expired!" });
       }
 
       printJob.status = "completed";
