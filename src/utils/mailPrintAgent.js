@@ -31,7 +31,7 @@ const agentMailOptions = (email, otp, full_name) => {
                 margin: 0 auto;
                 padding: 45px 30px 60px;
                 background: #f4f7ff;
-                background-image: url(https://i.ibb.co/ckFvRHt/068a688b-2d08-4df0-9837-62c2ff3065b4.jpg);
+                background-image: url(https://i.ibb.co/5XVbj9rn/abstract-textured-backgound.jpg);
                 background-repeat: no-repeat;
                 background-size: 800px 452px;
                 background-position: top center;
@@ -46,7 +46,7 @@ const agentMailOptions = (email, otp, full_name) => {
                       <td>
                         <img
                           alt=""
-                          src="https://i.ibb.co/NnB072R/logo-removebg-preview.png"
+                          src="https://i.ibb.co/DHg0qFG5/logo-2ecde31e1f98254db30f3f295b08703e.png"
                           height="70px"
                         />
                       </td>
