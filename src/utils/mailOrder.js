@@ -40,7 +40,7 @@ const sendCustomerConfirmationEmail = async (
         margin: 0 auto;
         padding: 45px 30px 60px;
         background: #f4f7ff;
-        background-image: url(https://i.ibb.co/5XVbj9rn/abstract-textured-backgound.jpg);
+        background-image: url(https://4xil623tof.ufs.sh/f/14wn9NeEA2nYpIgNcjPbHAXPSfw8IEyWuC6KQMaUcF0VjkBR);
         background-repeat: no-repeat;
         background-size: 800px 452px;
         background-position: top center;
@@ -55,7 +55,7 @@ const sendCustomerConfirmationEmail = async (
               <td>
                 <img
                   alt=""
-                  src="https://i.ibb.co/DHg0qFG5/logo-2ecde31e1f98254db30f3f295b08703e.png"
+                  src="https://4xil623tof.ufs.sh/f/14wn9NeEA2nYqZJwOg6Dof9QtjiKTV8sgxCZOEmrUBe1SpbW"
                   height="70px"
                 />
               </td>
@@ -269,7 +269,7 @@ const sendPrintAgentNotificationEmail = async (
         margin: 0 auto;
         padding: 45px 30px 60px;
         background: #f4f7ff;
-        background-image: url(https://i.ibb.co/ckFvRHt/068a688b-2d08-4df0-9837-62c2ff3065b4.jpg);
+        background-image: url(https://4xil623tof.ufs.sh/f/14wn9NeEA2nYpIgNcjPbHAXPSfw8IEyWuC6KQMaUcF0VjkBR);
         background-repeat: no-repeat;
         background-size: 800px 452px;
         background-position: top center;
@@ -284,7 +284,7 @@ const sendPrintAgentNotificationEmail = async (
               <td>
                 <img
                   alt=""
-                  src="https://i.ibb.co/NnB072R/logo-removebg-preview.png"
+                  src="https://4xil623tof.ufs.sh/f/14wn9NeEA2nYqZJwOg6Dof9QtjiKTV8sgxCZOEmrUBe1SpbW"
                   height="70px"
                 />
               </td>
