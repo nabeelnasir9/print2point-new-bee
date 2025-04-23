@@ -21,7 +21,7 @@ const otpGenerator = require("otp-generator");
 
 const app = express();
 const port = process.env.PORT || 5000;
-app.use(morgan("common"));
+app.use(morgan("dev"));
 
 app.post(
   "/api/printjob/stripe-webhook",
