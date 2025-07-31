@@ -8,6 +8,44 @@ const Customer = require("../../models/customer-schema.js");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
 const router = express.Router();
+
+// GET /api/customer/profile - Get user profile information
+router.get("/profile", verifyToken("customer"), async (req, res) => {
+  try {
+    const customer = await Customer.findById(req.user.id);
+    if (!customer) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if customer has location set
+    const has_location = !!(customer.location && (
+      customer.location.city || 
+      customer.location.state || 
+      customer.location.zip_code || 
+      customer.location.country
+    ));
+
+    const userProfile = {
+      id: customer._id,
+      full_name: customer.full_name,
+      email: customer.email,
+      location: customer.location || null,
+      has_location: has_location,
+      verified_email: customer.verified_email,
+      created_at: customer.created_at,
+      updated_at: customer.updated_at
+    };
+
+    res.status(200).json({
+      message: "User profile retrieved successfully",
+      user: userProfile
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
 router.post("/create-card", verifyToken("customer"), async (req, res) => {
   try {
     const { card } = req.body;

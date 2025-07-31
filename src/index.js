@@ -131,10 +131,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/printjob", printJobRoutes);
 
 mongoose
-  .connect(process.env.MONGO_URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+  .connect(process.env.MONGO_URL)
   .then(() => {
     console.log("Connected to MongoDB");
   })
