@@ -112,6 +112,15 @@ router.post("/login", async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid password" });
     }
+
+    // Check if customer has location set
+    const has_location = !!(customer.location && (
+      customer.location.city || 
+      customer.location.state || 
+      customer.location.zip_code || 
+      customer.location.country
+    ));
+
     const payload = {
       user: {
         id: customer.id,
@@ -127,7 +136,7 @@ router.post("/login", async (req, res) => {
         if (err) throw err;
         res
           .status(200)
-          .json({ message: "Logged in successfully", token, customer });
+          .json({ message: "Logged in successfully", token, customer, has_location });
       },
     );
   } catch (err) {

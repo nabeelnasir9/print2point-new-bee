@@ -5,22 +5,25 @@ Content-Type: application/json
 Authorization: Bearer {{printlogin.response.body.$.token}}
 
 {
-  "email": "fullmetal2336@gmail.com",
-  "personal_info": "Some info",
+  "personal_info": "Experienced print shop owner with 5+ years in business",
   "location": {
-    "address": "123 Street",
-    "city": "City",
-    "state": "State",
-    "zip_code": "12345",
-    "country": "Country"
+    "address": "123 Main Street",
+    "city": "New York",
+    "state": "NY",
+    "zip_code": "10001",
+    "country": "USA",
+    "coordinates": {
+      "latitude": 40.7128,
+      "longitude": -74.0060
+    }
   },
-  "personal_phone_number": "123-456-7890",
+  "personal_phone_number": "+1234567890",
   "card": {
-    "ref_type": "PrintAgent",
-    "bank_name": "Bank",
-    "card_number": "1r34567812345678",
-    "expiry_date": "12/23",
-    "phone_number": "123-456-7890"
+    "bank_name": "Chase Bank",
+    "card_number": "1234567812345678",
+    "expiry_date": "12/25",
+    "phone_number": "123-456-7890",
+    "cvv": "123"
   }
 }
 
@@ -30,29 +33,16 @@ Content-Type: application/json
 Authorization: Bearer {{printlogin.response.body.$.token}}
 
 {
-  "email": "fullmetal2336@gmail.com",
   "card": {
-    "bank_name": "Bank",
-    "card_number": "1r34567812345678",
-    "expiry_date": "12/23",
-    "phone_number": "123-456-7890"
+    "bank_name": "Bank of America",
+    "card_number": "9876543298765432",
+    "expiry_date": "06/26",
+    "phone_number": "987-654-3210",
+    "cvv": "456"
   }
 }
 
 ###
-POST {{baseUrl}}/api/print-agent/add-location
-Content-Type: application/json
+# Check if print agent is online or offline
+GET {{baseUrl}}/api/print-agent/if-online
 Authorization: Bearer {{printlogin.response.body.$.token}}
-
-{
-  "location": {
-    "city": "City",
-    "state": "State",
-    "zip_code": "12345",
-    "country": "Country",
-    "coordinates": {
-      "latitude": 12.34,
-      "longitude": 12.34
-    }
-  }
-}

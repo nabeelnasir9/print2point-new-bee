@@ -710,4 +710,45 @@ router.post(
   },
 );
 
+// Create 100% off coupon that can be used multiple times
+router.post("/create-free-coupon", verifyToken("admin"), async (req, res) => {
+  try {
+    const coupon = await stripe.coupons.create({
+      percent_off: 100,
+      duration: 'once',  // 100% off per order
+      id: 'FREE100',
+      name: 'Free Print Job',
+      metadata: {
+        campaign: 'free_promo',
+        created_by: req.user.id
+      }
+    });
+
+    res.status(200).json({
+      message: "100% off coupon created successfully",
+      coupon: {
+        id: coupon.id,
+        code: coupon.id,
+        percent_off: coupon.percent_off,
+        duration: coupon.duration,
+        name: coupon.name,
+        valid: coupon.valid
+      }
+    });
+  } catch (err) {
+    // Handle case where coupon with this ID already exists
+    if (err.code === 'resource_already_exists') {
+      return res.status(400).json({ 
+        message: "Coupon 'FREE100' already exists. Use the existing coupon or delete it first." 
+      });
+    }
+    
+    console.error("Error creating coupon:", err);
+    res.status(500).json({ 
+      message: "Failed to create coupon", 
+      error: err.message 
+    });
+  }
+});
+
 module.exports = router;
