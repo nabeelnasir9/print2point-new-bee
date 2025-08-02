@@ -550,12 +550,43 @@ These endpoints are accessible by print agents and typically require a `printAge
   - **Description:** Verifies the OTP to toggle the print agent's online/offline status.
   - **Authentication:** Print Agent Token
   - **Path Parameters:** `otp` (OTP received via email)
+  - **Response:** Returns the new availability status
+    ```json
+    {
+      "message": "Availability updated successfully",
+      "is_available": true,
+      "status": "online"
+    }
+    ```
 - **GET `/api/print-agent/all-customers`**
   - **Description:** Retrieves a list of all customers associated with the print agent's jobs.
   - **Authentication:** Print Agent Token
 - **GET `/api/print-agent/summary`**
   - **Description:** Provides a summary of the print agent's performance (total orders, customers, revenue, etc.).
   - **Authentication:** Print Agent Token
+- **GET `/api/print-agent/if-online`**
+  - **Description:** Checks if the print agent is currently online or offline.
+  - **Authentication:** Print Agent Token
+  - **Response:**
+    ```json
+    {
+      "message": "Status retrieved successfully",
+      "is_available": true,
+      "status": "online"
+    }
+    ```
+- **GET `/api/print-agent/profile`**
+  - **Description:** Retrieves the current print agent's profile information including online/offline status.
+  - **Authentication:** Print Agent Token
+  - **Response:** Returns complete profile with availability status
+    ```json
+    {
+      "message": "Profile retrieved successfully",
+      "printAgent": { /* full print agent object */ },
+      "is_available": true,
+      "status": "online"
+    }
+    ```
 - **GET `/api/print-agent/print-jobs`**
   - **Description:** Retrieves a list of all print jobs assigned to the print agent.
   - **Authentication:** Print Agent Token
@@ -629,6 +660,27 @@ These endpoints are related to print job creation, management, and payment.
     {
         "job_id": "string" (Print Job ID),
         "coupon_code": "string"
+    }
+    ```
+
+- **POST `/api/printjob/create-free-coupon`**
+
+  - **Description:** Creates a 100% off coupon that can be used multiple times by different customers.
+  - **Authentication:** Admin Token
+  - **Request Body:** None
+  - **Response:**
+
+    ```json
+    {
+        "message": "100% off coupon created successfully",
+        "coupon": {
+            "id": "FREE100",
+            "code": "FREE100",
+            "percent_off": 100,
+            "duration": "once",
+            "name": "Free Print Job",
+            "valid": true
+        }
     }
     ```
 

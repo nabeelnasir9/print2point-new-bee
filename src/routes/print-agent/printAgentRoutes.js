@@ -19,10 +19,41 @@ router.post("/additional-info", verifyToken("printAgent"), async (req, res) => {
     if (!printAgent) {
       return res.status(400).json({ message: "User not found" });
     }
-    printAgent.personal_info = personal_info;
-    printAgent.location = location;
-    printAgent.personal_phone_number = personal_phone_number;
 
+    // Validate and process location if provided
+    if (location) {
+      if (!location.zip_code) {
+        return res.status(400).json({ message: "Zip code is required for location" });
+      }
+
+      const lowerCaseZipCode = location.zip_code.toLowerCase();
+
+      // Check if location exists in the Location schema
+      const existingLocation = await Location.findOne({
+        zip_code: lowerCaseZipCode,
+      });
+
+      if (!existingLocation) {
+        return res.status(400).json({ message: "Location not supported in our service area" });
+      }
+
+      // Update location with normalized zip code and set reference
+      printAgent.location = {
+        ...location,
+        zip_code: lowerCaseZipCode,
+      };
+      printAgent.locationRef = existingLocation._id;
+    }
+
+    // Update other fields
+    if (personal_info !== undefined) {
+      printAgent.personal_info = personal_info;
+    }
+    if (personal_phone_number !== undefined) {
+      printAgent.personal_phone_number = personal_phone_number;
+    }
+
+    // Handle card creation if provided
     if (card) {
       const newCard = new Card({
         ...card,
@@ -34,7 +65,10 @@ router.post("/additional-info", verifyToken("printAgent"), async (req, res) => {
     }
 
     await printAgent.save();
-    res.status(200).json({ message: "Additional info updated successfully" });
+    res.status(200).json({ 
+      message: "Additional info updated successfully",
+      location: printAgent.location ? printAgent.location : undefined
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: "Server error", err });
@@ -278,41 +312,6 @@ router.put(
   },
 );
 
-// Add location to print agent and only allow if it exists in the locations collection by getting all the locations in location schema and checking if it matches with any state or zip code
-router.post("/add-location", verifyToken("printAgent"), async (req, res) => {
-  try {
-    const { location } = req.body;
-    const printAgent = await PrintAgent.findById(req.user.id);
-    if (!printAgent) {
-      return res.status(400).json({ message: "User not found" });
-    }
-    const lowerCaseZipCode = location.zip_code.toLowerCase();
-
-    const existingLocation = await Location.findOne({
-      zip_code: lowerCaseZipCode,
-    });
-
-    if (!existingLocation) {
-      return res.status(400).json({ message: "Location not allowed" });
-    }
-
-    printAgent.location = {
-      ...location,
-      zip_code: lowerCaseZipCode,
-    };
-    printAgent.locationRef = existingLocation._id;
-    await printAgent.save();
-
-    res.status(200).json({
-      message: "Location added successfully",
-      location: printAgent.location,
-    });
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: "Server error", error });
-  }
-});
-
 // should send a mail with an otp which when entered switches the is_available to true and vice versa
 router.get("/online-status", verifyToken("printAgent"), async (req, res) => {
   try {
@@ -486,6 +485,26 @@ router.get("/print-jobs", verifyToken("printAgent"), async (req, res) => {
       printJobs,
     });
   } catch (err) {
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+// Check if print agent is online or offline
+router.get("/if-online", verifyToken("printAgent"), async (req, res) => {
+  try {
+    const printAgent = await PrintAgent.findById(req.user.id);
+    
+    if (!printAgent) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "Status retrieved successfully",
+      is_available: printAgent.is_available,
+      status: printAgent.is_available ? "online" : "offline"
+    });
+  } catch (err) {
+    console.error(err.message);
     res.status(500).json({ message: "Server error", err });
   }
 });
