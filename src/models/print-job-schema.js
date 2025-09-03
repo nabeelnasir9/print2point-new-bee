@@ -27,6 +27,7 @@ const printJobSchema = new mongoose.Schema({
     default: "pending",
   },
   total_cost: { type: Number, required: true },
+  after_hours_fee: { type: Number, default: 0 },
   agent_payment_status: {
     type: String,
     enum: ["pending", "completed"],

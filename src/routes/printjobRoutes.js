@@ -70,11 +70,12 @@ router.post(
       const createdAt = new Date();
       // 24 hours
       const otp_expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      const total_cost = calculateCost(
+      const costBreakdown = calculateCost(
         pages,
         is_color,
         createdAt,
         no_of_copies,
+        true
       );
 
       const printJob = new PrintJob({
@@ -86,7 +87,8 @@ router.post(
         is_color,
         no_of_copies,
         pages,
-        total_cost,
+        total_cost: costBreakdown.totalCost,
+        after_hours_fee: costBreakdown.afterHoursFee,
         created_at: createdAt,
       });
 
@@ -699,6 +701,16 @@ router.post(
 
       printJob.status = "completed";
       await printJob.save();
+
+      // NEW: Disable chat when job is completed via confirmation code
+      try {
+        const { disableChatForJob } = require("../services/chatService.js");
+        await disableChatForJob(printJob._id, 'auto_24h');
+        console.log("Chat disabled for completed job:", printJob._id);
+      } catch (chatError) {
+        console.error("Error disabling chat for completed job:", chatError.message);
+        // Don't fail the job completion if chat disable fails
+      }
 
       res
         .status(200)
