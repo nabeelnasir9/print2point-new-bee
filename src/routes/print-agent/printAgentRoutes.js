@@ -384,6 +384,82 @@ router.get("/status-otp/:otp", verifyToken("printAgent"), async (req, res) => {
   }
 });
 
+// Kiosk mode toggle - send OTP to email for verification
+router.get("/kiosk-mode", verifyToken("printAgent"), async (req, res) => {
+  try {
+    const printAgent = await PrintAgent.findById(req.user.id);
+    if (!printAgent) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const email = printAgent.email;
+    const name = printAgent.full_name;
+
+    const otp = otpGenerator.generate(6, {
+      digits: true,
+      lowerCaseAlphabets: false,
+      upperCaseAlphabets: false,
+      specialChars: false,
+    });
+
+    printAgent.kiosk_mode_otp = otp;
+    printAgent.kiosk_mode_otp_expiry = Date.now() + 10 * 60 * 1000;
+    await printAgent.save();
+
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "print2pointt@gmail.com",
+        pass: "tebd siwh pwfg xifk",
+      },
+    });
+
+    transporter.sendMail(mailOptions(email, name, otp), (error) => {
+      if (error) {
+        return res.status(500).json({ message: "Error sending email" });
+      }
+      res.status(200).json({ message: "OTP sent to your email" });
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+// Verify kiosk mode OTP and toggle kiosk status
+router.get("/kiosk-otp/:otp", verifyToken("printAgent"), async (req, res) => {
+  try {
+    const { otp } = req.params;
+    const printAgent = await PrintAgent.findById(req.user.id);
+
+    if (!printAgent) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (
+      printAgent.kiosk_mode_otp !== otp ||
+      printAgent.kiosk_mode_otp_expiry < Date.now()
+    ) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    printAgent.is_kiosk_enabled = !printAgent.is_kiosk_enabled;
+    printAgent.kiosk_mode_otp = undefined;
+    printAgent.kiosk_mode_otp_expiry = undefined;
+    await printAgent.save();
+
+    res.status(200).json({ 
+      message: "Kiosk mode updated successfully",
+      is_kiosk_enabled: printAgent.is_kiosk_enabled
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
 router.get("/all-customers", verifyToken("printAgent"), async (req, res) => {
   try {
     const printAgent = await PrintAgent.findById(req.user.id);
@@ -502,6 +578,26 @@ router.get("/if-online", verifyToken("printAgent"), async (req, res) => {
       message: "Status retrieved successfully",
       is_available: printAgent.is_available,
       status: printAgent.is_available ? "online" : "offline"
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+// Check if print agent has kiosk mode enabled
+router.get("/kiosk-status", verifyToken("printAgent"), async (req, res) => {
+  try {
+    const printAgent = await PrintAgent.findById(req.user.id);
+    
+    if (!printAgent) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "Kiosk status retrieved successfully",
+      is_kiosk_enabled: printAgent.is_kiosk_enabled,
+      status: printAgent.is_kiosk_enabled ? "enabled" : "disabled"
     });
   } catch (err) {
     console.error(err.message);

@@ -2,12 +2,17 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const morgan = require("morgan");
+const { createServer } = require("http");
+const { Server } = require("socket.io");
 require("dotenv").config();
 const customerRoutes = require("./routes/customer/customerRoutes");
 const authRoutes = require("./routes/authRoutes");
 const printAgentRoutes = require("./routes/print-agent/printAgentRoutes.js");
 const adminRoutes = require("./routes/adminRoutes.js");
 const printJobRoutes = require("./routes/printjobRoutes.js");
+const kioskRoutes = require("./routes/kioskRoutes.js");
+const chatRoutes = require("./routes/chatRoutes.js");
+const { initializeChatSocketHandlers } = require("./services/chatService");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const PrintAgent = require("./models/print-agent-schema.js");
 const Customer = require("./models/customer-schema.js");
@@ -19,8 +24,21 @@ const transporter = require("./utils/transporter.js");
 const PrintJob = require("./models/print-job-schema.js");
 const otpGenerator = require("otp-generator");
 
+
+
 const app = express();
-const port = process.env.PORT || 5000;
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Initialize chat socket handlers
+initializeChatSocketHandlers(io);
+
+const port = process.env.PORT || 3000;
 app.use(morgan("dev"));
 
 app.post(
@@ -98,7 +116,17 @@ app.post(
 
           await Promise.all([customerEmailPromise, printAgentEmailPromise]);
 
-          console.log("Payment successful, emails sent.");
+          // Create chat session for customer-agent communication
+          try {
+            const { createChatSession } = require("./services/chatService");
+            await createChatSession(printJob._id, customerId, printJob.print_agent_id);
+            console.log("Chat session created for job:", printJob._id);
+          } catch (chatError) {
+            console.error("Error creating chat session:", chatError.message);
+            // Don't fail the payment process if chat creation fails
+          }
+
+          console.log("Payment successful, emails sent, chat session created.");
         } catch (err) {
           console.error("Error processing payment success:", err.message);
         }
@@ -129,6 +157,12 @@ app.use("/api/auth", authRoutes);
 app.use("/api/print-agent", printAgentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/printjob", printJobRoutes);
+app.use("/api/kiosk", kioskRoutes);
+app.use("/api/chat", chatRoutes);
+
+
+
+
 
 mongoose
   .connect(process.env.MONGO_URL)
@@ -136,8 +170,9 @@ mongoose
     console.log("Connected to MongoDB");
   })
   .then(() => {
-    app.listen(port, () => {
+    server.listen(port, () => {
       console.log(`Server is running on ${port}`);
+      console.log(`Socket.io server is ready for chat connections`);
     });
   })
   .catch((err) => {

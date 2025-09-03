@@ -1,4 +1,4 @@
-const calculateCost = (pages, isColor, createdAt, no_of_copies = 1) => {
+const calculateCost = (pages, isColor, createdAt, no_of_copies = 1, returnBreakdown = false) => {
   let baseCost, serviceFee;
 
   const totalPages = pages * no_of_copies;
@@ -23,7 +23,28 @@ const calculateCost = (pages, isColor, createdAt, no_of_copies = 1) => {
     serviceFee = 0.11 * baseCost;
   }
 
-  const totalCost = baseCost + serviceFee;
+  // Check if the job is being placed during after-hours (6pm to 9am)
+  let afterHoursFee = 0;
+  const jobTime = new Date(createdAt);
+  const jobHour = jobTime.getHours();
+  
+  // After hours: 6pm (18:00) to 9am (09:00)
+  // This means 18:00-23:59 and 00:00-08:59
+  if (jobHour >= 18 || jobHour < 9) {
+    afterHoursFee = 12.99;
+  }
+
+  const totalCost = baseCost + serviceFee + afterHoursFee;
+
+  if (returnBreakdown) {
+    return {
+      baseCost: parseFloat(baseCost.toFixed(2)),
+      serviceFee: parseFloat(serviceFee.toFixed(2)),
+      afterHoursFee: parseFloat(afterHoursFee.toFixed(2)),
+      totalCost: parseFloat(totalCost.toFixed(2))
+    };
+  }
+
   return totalCost.toFixed(2);
 };
 
