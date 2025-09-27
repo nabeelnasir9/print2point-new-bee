@@ -331,8 +331,8 @@ router.post("/create-ticket", verifyToken("customer"), async (req, res) => {
       port: 465,
       secure: true,
       auth: {
-        user: "print2pointt@gmail.com",
-        pass: "tebd siwh pwfg xifk",
+        user: "printtopoint2000@gmail.com",
+        pass: "jcpw vsdf mjgi lffa",
       },
     });
     transporter.sendMail(
