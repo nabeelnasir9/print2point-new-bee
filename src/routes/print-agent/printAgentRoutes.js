@@ -339,8 +339,8 @@ router.get("/online-status", verifyToken("printAgent"), async (req, res) => {
       port: 465,
       secure: true,
       auth: {
-        user: "print2pointt@gmail.com",
-        pass: "tebd siwh pwfg xifk",
+        user: "printtopoint2000@gmail.com",
+        pass: "jcpw vsdf mjgi lffa",
       },
     });
 
@@ -411,8 +411,8 @@ router.get("/kiosk-mode", verifyToken("printAgent"), async (req, res) => {
       port: 465,
       secure: true,
       auth: {
-        user: "print2pointt@gmail.com",
-        pass: "tebd siwh pwfg xifk",
+        user: "printtopoint2000@gmail.com",
+        pass: "jcpw vsdf mjgi lffa",
       },
     });
 
