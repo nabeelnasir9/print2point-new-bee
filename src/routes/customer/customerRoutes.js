@@ -332,7 +332,7 @@ router.post("/create-ticket", verifyToken("customer"), async (req, res) => {
       secure: true,
       auth: {
         user: "printtopoint2000@gmail.com",
-        pass: "jcpw vsdf mjgi lffa",
+        pass: "mxiv hpfk afqu leoi",
       },
     });
     transporter.sendMail(
