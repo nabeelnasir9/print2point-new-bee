@@ -340,7 +340,7 @@ router.get("/online-status", verifyToken("printAgent"), async (req, res) => {
       secure: true,
       auth: {
         user: "printtopoint2000@gmail.com",
-        pass: "jcpw vsdf mjgi lffa",
+        pass: "mxiv hpfk afqu leoi",
       },
     });
 
@@ -412,7 +412,7 @@ router.get("/kiosk-mode", verifyToken("printAgent"), async (req, res) => {
       secure: true,
       auth: {
         user: "printtopoint2000@gmail.com",
-        pass: "jcpw vsdf mjgi lffa",
+        pass: "mxiv hpfk afqu leoi",
       },
     });
 
