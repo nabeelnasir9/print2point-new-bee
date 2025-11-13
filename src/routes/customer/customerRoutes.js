@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Location = require("../../models/locations-schema.js");
 const verifyToken = require("../../middleware/verifyToken.js");
 const PrintAgent = require("../../models/print-agent-schema.js");
@@ -7,6 +8,9 @@ const nodemailer = require("nodemailer");
 const Customer = require("../../models/customer-schema.js");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
+const ChatSession = require("../../models/chat-session-schema.js");
+const Message = require("../../models/message-schema.js");
+const PrintJob = require("../../models/print-job-schema.js");
 const router = express.Router();
 
 // GET /api/customer/profile - Get user profile information
@@ -363,6 +367,95 @@ router.post("/create-ticket", verifyToken("customer"), async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: "Server error", err });
+  }
+});
+
+// DELETE /api/customer/delete-account - Delete customer account and all associated data
+router.delete("/delete-account", verifyToken("customer"), async (req, res) => {
+  const dbSession = await mongoose.startSession();
+  dbSession.startTransaction();
+
+  try {
+    const customerId = req.user.id;
+    const customer = await Customer.findById(customerId).session(dbSession);
+    
+    if (!customer) {
+      await dbSession.abortTransaction();
+      await dbSession.endSession();
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    // Count items before deletion for response
+    const cardsCount = customer.cards?.length || 0;
+    const ticketsCount = await Tickets.countDocuments({ customer_id: customerId }).session(dbSession);
+    const chatSessions = await ChatSession.find({ customer_id: customerId }).session(dbSession);
+    const chatSessionsCount = chatSessions.length;
+    const chatSessionIds = chatSessions.map(chatSession => chatSession._id);
+    const messagesCount = chatSessionIds.length > 0 
+      ? await Message.countDocuments({ chat_session_id: { $in: chatSessionIds } }).session(dbSession)
+      : 0;
+    const printJobsCount = await PrintJob.countDocuments({ customer_id: customerId }).session(dbSession);
+
+    // Delete all cards associated with the customer
+    if (cardsCount > 0) {
+      await Card.deleteMany({ 
+        _id: { $in: customer.cards },
+        ref_type: "Customer",
+        user_id: customerId
+      }).session(dbSession);
+    }
+
+    // Delete all tickets associated with the customer
+    if (ticketsCount > 0) {
+      await Tickets.deleteMany({ customer_id: customerId }).session(dbSession);
+    }
+
+    // Delete all messages in chat sessions
+    if (messagesCount > 0 && chatSessionIds.length > 0) {
+      await Message.deleteMany({ chat_session_id: { $in: chatSessionIds } }).session(dbSession);
+    }
+    
+    // Delete all chat sessions
+    if (chatSessionsCount > 0) {
+      await ChatSession.deleteMany({ customer_id: customerId }).session(dbSession);
+    }
+
+    // Handle print jobs - keep them for records but set customer_id to null
+    // This preserves business records while removing customer association
+    if (printJobsCount > 0) {
+      await PrintJob.updateMany(
+        { customer_id: customerId },
+        { $set: { customer_id: null } }
+      ).session(dbSession);
+    }
+
+    // Delete the customer account
+    await Customer.deleteOne({ _id: customerId }).session(dbSession);
+
+    // Commit the transaction
+    await dbSession.commitTransaction();
+    await dbSession.endSession();
+
+    res.status(200).json({ 
+      message: "Account deleted successfully",
+      deleted: {
+        customer: true,
+        cards: cardsCount,
+        tickets: ticketsCount,
+        chatSessions: chatSessionsCount,
+        messages: messagesCount,
+        printJobsUpdated: printJobsCount
+      }
+    });
+  } catch (err) {
+    // Abort transaction on error
+    await dbSession.abortTransaction();
+    await dbSession.endSession();
+    console.error("Error deleting customer account:", err.message);
+    res.status(500).json({ 
+      message: "Server error while deleting account", 
+      error: err.message 
+    });
   }
 });
 
