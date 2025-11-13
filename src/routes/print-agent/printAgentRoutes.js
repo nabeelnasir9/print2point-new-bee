@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const verifyToken = require("../../middleware/verifyToken.js");
 const PrintAgent = require("../../models/print-agent-schema.js");
 const Location = require("../../models/locations-schema.js");
@@ -8,6 +9,8 @@ const nodemailer = require("nodemailer");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
 const PrintJob = require("../../models/print-job-schema.js");
+const ChatSession = require("../../models/chat-session-schema.js");
+const Message = require("../../models/message-schema.js");
 const router = express.Router();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
@@ -602,6 +605,94 @@ router.get("/kiosk-status", verifyToken("printAgent"), async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: "Server error", err });
+  }
+});
+
+// DELETE /api/print-agent/delete-account - Delete print agent account and all associated data
+router.delete("/delete-account", verifyToken("printAgent"), async (req, res) => {
+  const dbSession = await mongoose.startSession();
+  dbSession.startTransaction();
+
+  try {
+    const printAgentId = req.user.id;
+    const printAgent = await PrintAgent.findById(printAgentId).session(dbSession);
+    
+    if (!printAgent) {
+      await dbSession.abortTransaction();
+      await dbSession.endSession();
+      return res.status(404).json({ message: "Print agent not found" });
+    }
+
+    // Count items before deletion for response
+    const cardsCount = printAgent.cards?.length || 0;
+    const chatSessions = await ChatSession.find({ agent_id: printAgentId }).session(dbSession);
+    const chatSessionsCount = chatSessions.length;
+    const chatSessionIds = chatSessions.map(chatSession => chatSession._id);
+    const messagesCount = chatSessionIds.length > 0 
+      ? await Message.countDocuments({ chat_session_id: { $in: chatSessionIds } }).session(dbSession)
+      : 0;
+    const printJobsCount = await PrintJob.countDocuments({ print_agent_id: printAgentId }).session(dbSession);
+
+    // Delete all cards associated with the print agent
+    if (cardsCount > 0) {
+      await Card.deleteMany({ 
+        _id: { $in: printAgent.cards },
+        ref_type: "PrintAgent",
+        user_id: printAgentId
+      }).session(dbSession);
+    }
+
+    // Delete all messages in chat sessions
+    if (messagesCount > 0 && chatSessionIds.length > 0) {
+      await Message.deleteMany({ chat_session_id: { $in: chatSessionIds } }).session(dbSession);
+    }
+    
+    // Delete all chat sessions
+    if (chatSessionsCount > 0) {
+      await ChatSession.deleteMany({ agent_id: printAgentId }).session(dbSession);
+    }
+
+    // Handle print jobs - keep them for records but set print_agent_id to null
+    // This preserves business records while removing print agent association
+    if (printJobsCount > 0) {
+      await PrintJob.updateMany(
+        { print_agent_id: printAgentId },
+        { $set: { print_agent_id: null } }
+      ).session(dbSession);
+    }
+
+    // Note: We don't delete the Stripe account as it may contain financial records
+    // The Stripe account can be manually deactivated if needed
+    // If stripe_account_id exists, you may want to log it for admin review
+    const stripeAccountId = printAgent.stripe_account_id || null;
+
+    // Delete the print agent account
+    await PrintAgent.deleteOne({ _id: printAgentId }).session(dbSession);
+
+    // Commit the transaction
+    await dbSession.commitTransaction();
+    await dbSession.endSession();
+
+    res.status(200).json({ 
+      message: "Account deleted successfully",
+      deleted: {
+        printAgent: true,
+        cards: cardsCount,
+        chatSessions: chatSessionsCount,
+        messages: messagesCount,
+        printJobsUpdated: printJobsCount,
+        stripeAccountId: stripeAccountId
+      }
+    });
+  } catch (err) {
+    // Abort transaction on error
+    await dbSession.abortTransaction();
+    await dbSession.endSession();
+    console.error("Error deleting print agent account:", err.message);
+    res.status(500).json({ 
+      message: "Server error while deleting account", 
+      error: err.message 
+    });
   }
 });
 
