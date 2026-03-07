@@ -23,15 +23,21 @@ const calculateCost = (pages, isColor, createdAt, no_of_copies = 1, returnBreakd
     serviceFee = 0.11 * baseCost;
   }
 
-  // Check if the job is being placed during after-hours (6pm to 9am)
+  // Check if the job is being placed during after-hours (6pm to 9am) in US Eastern Time (Florida)
   let afterHoursFee = 0;
   const jobTime = new Date(createdAt);
-  const jobHour = jobTime.getHours();
-  
-  // After hours: 6pm (18:00) to 9am (09:00)
-  // This means 18:00-23:59 and 00:00-08:59
+  const jobHour = parseInt(
+    new Intl.DateTimeFormat('en-US', { hour: 'numeric', hour12: false, timeZone: 'America/New_York' }).format(jobTime)
+  );
+
+  console.log(`[AfterHours Check] Job Time (Eastern): ${new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'America/New_York' }).format(jobTime)} | Hour: ${jobHour} | After Hours: ${jobHour >= 18 || jobHour < 9}`);
+
+  // After hours: 6pm (18:00) to 9am (09:00) Eastern Time
   if (jobHour >= 18 || jobHour < 9) {
     afterHoursFee = 12.99;
+    console.log(`[AfterHours Check] After hours fee applied: $12.99`);
+  } else {
+    console.log(`[AfterHours Check] No after hours fee.`);
   }
 
   const totalCost = baseCost + serviceFee + afterHoursFee;
