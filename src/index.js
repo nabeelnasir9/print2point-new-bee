@@ -159,6 +159,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/printjob", printJobRoutes);
 app.use("/api/kiosk", kioskRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/banner", require("./routes/bannerRoutes.js"));
 
 
 

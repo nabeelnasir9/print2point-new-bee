@@ -9,6 +9,7 @@ const PrintAgent = require("../models/print-agent-schema.js");
 const jwt = require("jsonwebtoken");
 const verifyToken = require("../middleware/verifyToken");
 const Tickets = require("../models/tickets-schema.js");
+const AnnouncementBanner = require("../models/announcement-banner-schema.js");
 const router = express.Router();
 
 router.post("/create-admin", async (req, res) => {
@@ -450,6 +451,98 @@ router.post("/tickets/:id", verifyToken("admin"), async (req, res) => {
     });
   } catch (err) {
     console.error("Error updating ticket:", err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+// --- Announcement Banner (admin only) ---
+router.get("/banner", verifyToken("admin"), async (_req, res) => {
+  try {
+    let banner = await AnnouncementBanner.findOne();
+    if (!banner) {
+      banner = await AnnouncementBanner.create({
+        message: "",
+        enabled: false,
+        showButton1: false,
+        button1Text: "",
+        button1Link: "",
+        showButton2: false,
+        button2Text: "",
+        button2Link: "",
+      });
+    }
+    res.status(200).json({
+      message: "Banner fetched successfully",
+      banner: {
+        message: banner.message,
+        enabled: banner.enabled,
+        showButton1: banner.showButton1,
+        button1Text: banner.button1Text,
+        button1Link: banner.button1Link,
+        showButton2: banner.showButton2,
+        button2Text: banner.button2Text,
+        button2Link: banner.button2Link,
+      },
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err });
+  }
+});
+
+router.put("/banner", verifyToken("admin"), async (req, res) => {
+  try {
+    const {
+      message,
+      enabled,
+      showButton1,
+      button1Text,
+      button1Link,
+      showButton2,
+      button2Text,
+      button2Link,
+    } = req.body;
+
+    let banner = await AnnouncementBanner.findOne();
+    if (!banner) {
+      banner = new AnnouncementBanner({
+        message: "",
+        enabled: false,
+        showButton1: false,
+        button1Text: "",
+        button1Link: "",
+        showButton2: false,
+        button2Text: "",
+        button2Link: "",
+      });
+    }
+
+    if (typeof message !== "undefined") banner.message = message;
+    if (typeof enabled !== "undefined") banner.enabled = Boolean(enabled);
+    if (typeof showButton1 !== "undefined") banner.showButton1 = Boolean(showButton1);
+    if (typeof button1Text !== "undefined") banner.button1Text = button1Text || "";
+    if (typeof button1Link !== "undefined") banner.button1Link = button1Link || "";
+    if (typeof showButton2 !== "undefined") banner.showButton2 = Boolean(showButton2);
+    if (typeof button2Text !== "undefined") banner.button2Text = button2Text || "";
+    if (typeof button2Link !== "undefined") banner.button2Link = button2Link || "";
+
+    await banner.save();
+
+    res.status(200).json({
+      message: "Banner updated successfully",
+      banner: {
+        message: banner.message,
+        enabled: banner.enabled,
+        showButton1: banner.showButton1,
+        button1Text: banner.button1Text,
+        button1Link: banner.button1Link,
+        showButton2: banner.showButton2,
+        button2Text: banner.button2Text,
+        button2Link: banner.button2Link,
+      },
+    });
+  } catch (err) {
+    console.error(err.message);
     res.status(500).json({ message: "Server error", err });
   }
 });
