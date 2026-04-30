@@ -4,7 +4,7 @@ const Location = require("../../models/locations-schema.js");
 const verifyToken = require("../../middleware/verifyToken.js");
 const PrintAgent = require("../../models/print-agent-schema.js");
 const Tickets = require("../../models/tickets-schema.js");
-const nodemailer = require("nodemailer");
+const transporter = require("../../utils/transporter.js");
 const Customer = require("../../models/customer-schema.js");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
@@ -329,19 +329,9 @@ router.post("/create-ticket", verifyToken("customer"), async (req, res) => {
     });
 
     await newTicket.save();
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: "printtopointsaas@gmail.com",
-        pass: "jqxl mqqo xkrk pwny",
-      },
-    });
     transporter.sendMail(
       {
-        from: process.env.EMAIL,
+        from: "no_reply@print2point.com",
         to: process.env.EMAIL,
         subject: "Ticket created",
         html: `

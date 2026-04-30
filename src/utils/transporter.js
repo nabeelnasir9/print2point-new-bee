@@ -1,13 +1,12 @@
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  host: "mail-eu.smtp2go.com",
+  port: 2525,
+  secure: false,
   auth: {
-    user: process.env.EMAIL,
-    pass: process.env.PASSWORD,
+    user: process.env.SMTP2GO_USER,
+    pass: process.env.SMTP2GO_API_KEY,
   },
 });
 

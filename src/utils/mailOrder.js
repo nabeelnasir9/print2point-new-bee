@@ -9,7 +9,7 @@ const sendCustomerConfirmationEmail = async (
   transporter,
 ) => {
   const mailOptions = {
-    from: "infosynthseer@gmail.com",
+    from: "no_reply@print2point.com",
     to: customerEmail,
     subject: "Print Job Confirmation",
     html: `
@@ -238,7 +238,7 @@ const sendPrintAgentNotificationEmail = async (
   transporter,
 ) => {
   const mailOptions = {
-    from: "infosynthseer@gmail.com",
+    from: "no_reply@print2point.com",
     to: printAgentEmail,
     subject: "New Print Job Assigned",
     html: `
