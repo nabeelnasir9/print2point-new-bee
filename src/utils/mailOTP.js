@@ -1,6 +1,6 @@
 const mailOptions = (email, full_name, otp) => {
   return {
-    from: process.env.EMAIL,
+    from: "no_reply@print2point.com",
     to: email,
     subject: "Change your availability",
     html: `

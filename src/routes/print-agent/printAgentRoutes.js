@@ -5,7 +5,7 @@ const PrintAgent = require("../../models/print-agent-schema.js");
 const Location = require("../../models/locations-schema.js");
 const otpGenerator = require("otp-generator");
 const mailOptions = require("../../utils/mailOTP.js");
-const nodemailer = require("nodemailer");
+const transporter = require("../../utils/transporter.js");
 const Card = require("../../models/card-schema.js");
 const validateUpdateCard = require("../../middleware/validateCard.js");
 const PrintJob = require("../../models/print-job-schema.js");
@@ -336,17 +336,6 @@ router.get("/online-status", verifyToken("printAgent"), async (req, res) => {
     printAgent.availability_otp_expiry = Date.now() + 10 * 60 * 1000;
     await printAgent.save();
 
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: "printtopointsaas@gmail.com",
-        pass: "jqxl mqqo xkrk pwny",
-      },
-    });
-
     transporter.sendMail(mailOptions(email, name, otp), (error) => {
       if (error) {
         return res.status(500).json({ message: "Error sending email" });
@@ -407,17 +396,6 @@ router.get("/kiosk-mode", verifyToken("printAgent"), async (req, res) => {
     printAgent.kiosk_mode_otp = otp;
     printAgent.kiosk_mode_otp_expiry = Date.now() + 10 * 60 * 1000;
     await printAgent.save();
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: "printtopointsaas@gmail.com",
-        pass: "jqxl mqqo xkrk pwny",
-      },
-    });
 
     transporter.sendMail(mailOptions(email, name, otp), (error) => {
       if (error) {
