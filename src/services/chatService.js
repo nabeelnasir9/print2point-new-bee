@@ -4,6 +4,7 @@ const Message = require("../models/message-schema");
 const Customer = require("../models/customer-schema");
 const PrintAgent = require("../models/print-agent-schema");
 const PrintJob = require("../models/print-job-schema");
+const { sendPushNotification } = require("../utils/pushNotifications");
 
 // Store active socket connections
 const activeConnections = new Map();
@@ -444,37 +445,46 @@ async function getActiveChatsForUser(userId, userType) {
  */
 async function sendPushNotificationIfOffline(chatSession, message, senderId) {
   try {
-    // Determine recipient
-    const recipientId = message.sender_type === "customer" 
+    // Determine recipient: if customer sent it, notify the agent, and vice versa
+    const recipientIsAgent = message.sender_type === "customer";
+    const recipientId = recipientIsAgent
       ? chatSession.agent_id.toString()
       : chatSession.customer_id.toString();
+    const recipientType = recipientIsAgent ? "printAgent" : "customer";
 
-    // Check if recipient is online
+    // Only push when the recipient is NOT actively connected via socket
     const isOnline = activeConnections.has(recipientId);
-    
-    if (!isOnline) {
-      // TODO: Implement push notification service
-      console.log(`User ${recipientId} is offline, should send push notification`);
-      
-      // Example notification payload:
-      const notificationPayload = {
-        title: message.sender_type === "customer" 
-          ? "New message from customer"
-          : "New message from print agent",
-        body: message.message_text,
-        data: {
-          chatSessionId: chatSession._id.toString(),
-          messageId: message._id.toString(),
-          type: "chat_message"
-        }
-      };
-      
-      // Here you would integrate with Firebase FCM, Apple Push Notifications, etc.
-      console.log("Push notification payload:", notificationPayload);
+    if (isOnline) {
+      return;
     }
 
+    // Figure out a friendly sender name for the title
+    let senderName;
+    if (recipientIsAgent) {
+      const customer = await Customer.findById(chatSession.customer_id).select(
+        "full_name",
+      );
+      senderName = customer ? customer.full_name : "Customer";
+    } else {
+      const agent = await PrintAgent.findById(chatSession.agent_id).select(
+        "business_name full_name",
+      );
+      senderName = agent
+        ? agent.business_name || agent.full_name
+        : "Print Agent";
+    }
+
+    await sendPushNotification(recipientId, recipientType, {
+      title: `New message from ${senderName}`,
+      body: message.message_text,
+      data: {
+        type: "chat_message",
+        chatSessionId: chatSession._id.toString(),
+        messageId: message._id.toString(),
+      },
+    });
   } catch (error) {
-    console.error("Error sending push notification:", error);
+    console.error("Error sending chat push notification:", error);
   }
 }
 
