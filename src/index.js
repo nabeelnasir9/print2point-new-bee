@@ -143,7 +143,7 @@ app.post(
 
             await sendPushNotification(customer._id, "customer", {
               title: "Job created successfully",
-              body: `"${printJob.print_job_title}" ($${amount}) sent to ${printAgent.business_name}. Pickup code: ${confirmationCode}`,
+              body: `${printJob.print_job_title} | $${amount} | Code: ${confirmationCode}`,
               data: {
                 type: "job_created",
                 print_job_id: printJob._id.toString(),
