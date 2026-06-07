@@ -441,7 +441,9 @@ async function getActiveChatsForUser(userId, userType) {
 }
 
 /**
- * Send push notification if user is offline
+ * Send a push notification to the message recipient.
+ * Always sends (even if the recipient is currently online), so users get a
+ * heads-up notification regardless of whether the chat screen is open.
  */
 async function sendPushNotificationIfOffline(chatSession, message, senderId) {
   try {
@@ -451,12 +453,6 @@ async function sendPushNotificationIfOffline(chatSession, message, senderId) {
       ? chatSession.agent_id.toString()
       : chatSession.customer_id.toString();
     const recipientType = recipientIsAgent ? "printAgent" : "customer";
-
-    // Only push when the recipient is NOT actively connected via socket
-    const isOnline = activeConnections.has(recipientId);
-    if (isOnline) {
-      return;
-    }
 
     // Figure out a friendly sender name for the title
     let senderName;
