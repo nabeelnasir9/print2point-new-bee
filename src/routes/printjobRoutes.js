@@ -108,6 +108,27 @@ router.post(
   },
 );
 
+// GET /api/printjob/my-jobs - List the logged-in customer's print jobs
+// Optional ?limit=N to cap results (used by the home screen "Recent Jobs" card)
+router.get("/my-jobs", verifyToken("customer"), async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+    const printJobs = await PrintJob.find({ customer_id: req.user.id })
+      .populate("print_agent_id", "business_name full_name")
+      .sort({ created_at: -1 })
+      .limit(limit);
+
+    res.status(200).json({
+      message: "Print jobs retrieved successfully",
+      printJobs,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: "Server error", err: err.message });
+  }
+});
+
 router.post(
   "/select-print-agent/:jobId",
   verifyToken("customer"),
