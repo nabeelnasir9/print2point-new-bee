@@ -23,6 +23,7 @@ const {
 const transporter = require("./utils/transporter.js");
 const PrintJob = require("./models/print-job-schema.js");
 const otpGenerator = require("otp-generator");
+const { sendPushNotification } = require("./utils/pushNotifications.js");
 
 
 
@@ -126,6 +127,49 @@ app.post(
             // Don't fail the payment process if chat creation fails
           }
 
+          // Send push notifications to customer and print agent
+          try {
+            const amount = (paymentIntent.amount / 100).toFixed(2);
+
+            await sendPushNotification(customer._id, "customer", {
+              title: "Payment successful 🎉",
+              body: `Your payment of $${amount} was successful.`,
+              data: {
+                type: "payment_success",
+                print_job_id: printJob._id.toString(),
+                amount,
+              },
+            });
+
+            await sendPushNotification(customer._id, "customer", {
+              title: "Job created successfully",
+              body: `"${printJob.print_job_title}" ($${amount}) sent to ${printAgent.business_name}. Pickup code: ${confirmationCode}`,
+              data: {
+                type: "job_created",
+                print_job_id: printJob._id.toString(),
+                agent_business_name: printAgent.business_name,
+                amount,
+                confirmation_code: confirmationCode,
+              },
+            });
+
+            await sendPushNotification(printAgent._id, "printAgent", {
+              title: "New Job received",
+              body: `New order "${printJob.print_job_title}" ($${amount}) is ready to print.`,
+              data: {
+                type: "new_paid_order",
+                print_job_id: printJob._id.toString(),
+                amount,
+              },
+            });
+          } catch (notifyError) {
+            console.error(
+              "Error sending payment success notifications:",
+              notifyError.message,
+            );
+            // Don't fail the payment flow if notifications fail
+          }
+
           console.log("Payment successful, emails sent, chat session created.");
         } catch (err) {
           console.error("Error processing payment success:", err.message);
@@ -133,6 +177,40 @@ app.post(
 
         break;
       }
+
+      // TODO: Enable once "payment_intent.payment_failed" is added in the
+      // Stripe Dashboard webhook events. Sends a "Payment failed" push to the
+      // customer. Commented out for now.
+      // case "payment_intent.payment_failed": {
+      //   const paymentIntent = event.data.object;
+      //
+      //   try {
+      //     const customerId = paymentIntent.metadata.customer_id;
+      //     const printJobId = paymentIntent.metadata.print_job_id;
+      //
+      //     if (customerId) {
+      //       const printJob = printJobId
+      //         ? await PrintJob.findById(printJobId)
+      //         : null;
+      //       const jobTitle = printJob ? printJob.print_job_title : "your order";
+      //
+      //       await sendPushNotification(customerId, "customer", {
+      //         title: "Payment failed ❌",
+      //         body: `Your payment for "${jobTitle}" could not be completed. Please try again.`,
+      //         data: {
+      //           type: "payment_failed",
+      //           print_job_id: printJobId || "",
+      //         },
+      //       });
+      //     }
+      //
+      //     console.log("Payment failed notification sent.");
+      //   } catch (err) {
+      //     console.error("Error processing payment failure:", err.message);
+      //   }
+      //
+      //   break;
+      // }
 
       default:
         console.log(`Unhandled event type ${event.type}`);
@@ -160,6 +238,7 @@ app.use("/api/printjob", printJobRoutes);
 app.use("/api/kiosk", kioskRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/banner", require("./routes/bannerRoutes.js"));
+app.use("/api/notifications", require("./routes/notificationRoutes.js"));
 
 
 

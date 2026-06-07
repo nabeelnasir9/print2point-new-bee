@@ -94,6 +94,10 @@ router.post(
 
       await printJob.save();
 
+      // Note: the customer "Job created successfully" notification (with price,
+      // agent name and pickup code) is sent on payment_intent.succeeded in
+      // index.js, because the agent is only selected after this step.
+
       res
         .status(201)
         .json({ message: "Print job created successfully", printJob });
